@@ -35,6 +35,7 @@ class Chapter(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.String())
     quiz = db.relationship('Quiz', backref="chapter")
+    question = db.relationship('Chapterwisequestion', backref='chapter')
 
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,7 +43,7 @@ class Quiz(db.Model):
     name = db.Column(db.String(), nullable=False)
     quiz_date = db.Column(db.Date, nullable=False)
     time_duration = db.Column(db.Time, nullable=False)
-    question = db.relationship('QuizQuestion', backref="quiz")
+    question = db.relationship('Chapterwisequestion', backref="quiz")
     score = db.relationship('Score', backref="quiz")
 
 class Question(db.Model):
@@ -54,11 +55,12 @@ class Question(db.Model):
     option3 = db.Column(db.String(), nullable=False)
     option4 = db.Column(db.String(), nullable=False)
     correct_option = db.Column(db.Integer, nullable=False)
-    quiz = db.relationship("QuizQuestion", backref="question")
+    quiz = db.relationship('Chapterwisequestion', backref="question")
 
-class QuizQuestion(db.Model):
+class Chapterwisequestion(db.Model):
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), primary_key=True, nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey("question.id"), primary_key=True, nullable=False)
+    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), primary_key=True, nullable=False)
 
 class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -71,6 +73,7 @@ with app.app_context():
     # if file doesn't exist then create database
     if not os.path.exists("./instance/database.sqlite3") or not os.path.getsize("./instance/database.sqlite3"):
         db.create_all()
+
 
 # Flask work
 @app.route('/', methods=["GET", "POST"])
@@ -120,13 +123,31 @@ def signup():
         return redirect(url_for("index"))
     return render_template("signup.html")
 
-@app.route("/admin")
+@app.route("/admin/dashboard")
 def admin():
-    return render_template("admin.html")
+    subjects = Subject.query.all()
+    subject_data = []
+    for subject in subjects:
+        chapters = Chapter.query.filter_by(subject_id=subject.id).all()
+        chapter_with_count = [
+            {
+                "id": chapter.id,
+                "name": chapter.name,
+                "number_of_questions": Chapterwisequestion.query.filter_by(chapter_id=chapter.id).count()
+            }
+            for chapter in chapters
+        ]
+        subject_data.append({
+            "id": subject.id,
+            "name": subject.name,
+            "chapters": chapter_with_count
+        })
+    return render_template("admin.html", subjects=subject_data)
 
 @app.route("/<username>")
 def user(username):
-    return render_template("user.html", username=username)
+    user = User.query.filter_by(username=username).first()
+    return render_template("user.html", user=user)
 
 if __name__ == "__main__":
     app.run(debug=True)

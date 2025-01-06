@@ -1,8 +1,98 @@
 {% extends 'base.html' %}
 {% block head %}
+<style>
+    .container-custom {
+        max-width: 1200px;
+        padding-left: 5px;
+        padding-right: 5px;
+        margin: 0 auto;
+    }
 
+    .subjects-container {
+        margin-top: 20px;
+    }
+
+    .subject-card {
+        margin-bottom: 20px;
+    }
+
+    .action-links a {
+        margin-right: 10px;
+        text-decoration: none;
+    }
+
+    .edit_button {
+        margin-right: 5px;
+    }
+</style>
 {% endblock %}
-{% block title %}{% endblock %}
+{% block title %}Admin{% endblock %}
 {% block content %}
-
+<div class="page-wrapper">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a href="/admin/dashboard" style="text-decoration: none; color: red;">
+            <h1>Welcome to Admin</h1>
+        </a>
+        <ul class="nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/admin/search">Search</a>
+            </li>
+            <li>
+                <form action="/logout" class="d-inline">
+                    <button type="submit" class="btn btn-outline-danger">Logout</button>
+                </form>
+            </li>
+        </ul>
+    </nav>
+    <div class="container-custom">
+        <div>
+            <button class="btn btn-primary">Add Chapter</button>
+        </div>
+        <!-- Subjects -->
+        <div class="subjects-container row">
+            {% for subject in subjects %}
+            <div class="col-md-6 subject-card">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title m-0">{{ subject.name }}</h5>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Chapter Name</th>
+                                    <th>No. of Questions</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for chapter in subject.chapters %}
+                                <tr>
+                                    <td>{{ chapter.name }}</td>
+                                    <td>{{ chapter.number_of_questions }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <!-- Edit Button -->
+                                            <button type="button" class="btn btn-outline-primary btn-sm me-2 edit_button" data-toggle="modal" data-target="#editChapter{{ chapter.id }}">
+                                                Edit
+                                            </button>
+                                            {% include 'edit_chapter.html' %}
+                                    
+                                            <!-- Delete Button -->
+                                            <form action="" method="post" onsubmit="return confirm('Are you sure you want to delete this chapter?');" class="mb-0">
+                                                <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>                                                                        
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
 {% endblock %}

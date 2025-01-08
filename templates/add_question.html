@@ -8,13 +8,51 @@
             <div class="modal-body">
                 <form action="/question/add" id="question" method="post">
                     <div class="form-group">
-                        <label for="title">Title</label>
-                        <input autofocus type="text" class="form-control" id="title" name="title" autocomplete="off" required>
+                        <input autofocus type="text" class="form-control" id="title" name="title" autocomplete="off" placeholder="Title" required>
                     </div>
                     <div class="form-group">
-                        <label for="statement">Statement</label>
-                        <textarea class="form-control" id="statement" name="statement" rows="3" required></textarea>
+                        <textarea class="form-control" id="statement" name="statement" rows="3" placeholder="Statement" required></textarea>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <input autofocus autocomplete="on" type="text" class="form-control" id="option1" name="option1"
+                                placeholder="Option1" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <input autofocus autocomplete="on" type="text" class="form-control" id="option2" name="option2"
+                                placeholder="Option2" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <input autofocus autocomplete="on" type="text" class="form-control" id="option3" name="option3"
+                                placeholder="Option3" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <input autofocus autocomplete="on" type="text" class="form-control" id="option4" name="option4"
+                                placeholder="Option4" required>
+                        </div>
+                    </div>
+                    <div class="form-group form-check form-check-inline">
+                        <label>Correct Option:</label>
+                    </div>
+                    <div class="form-group form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="1" name="correct_option" value="1" required>
+                        <label class="form-check-label" for="1">1</label>
+                    </div>
+                    <div class="form-group form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="2" name="correct_option" value="2" required>
+                        <label class="form-check-label" for="2">2</label>
+                    </div>
+                    <div class="form-group form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="3" name="correct_option" value="3" required>
+                        <label class="form-check-label" for="3">3</label>
+                    </div>
+                    <div class="form-group form-check form-check-inline">
+                        <input class="form-check-input" type="radio" id="4" name="correct_option" value="4" required>
+                        <label class="form-check-label" for="4">4</label>
+                    </div>
+                    <input type="hidden" name="chapter_id" value="{{chapter.id}}">
                 </form>
             </div>
             <div class="modal-footer justify-content-center">

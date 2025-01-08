@@ -226,6 +226,43 @@ def chapter(action, id=None):
         flash("Invalid input", "error")
         return redirect(url_for("admin"))
 
+@app.route("/question/<action>", methods=["POST"])
+@app.route("/question/<action>/<int:id>", methods=["POST"])
+def question(action, id=None):
+    if action == "add":
+        db.session.add(Question(title=request.form.get("title"),
+                                statement=request.form.get("statement"),
+                                option1=request.form.get("option1"),
+                                option2=request.form.get("option2"),
+                                option3=request.form.get("option3"),
+                                option4=request.form.get("option4"),
+                                correct_option=request.form.get("correct_option")))
+        question = Question.query.filter_by(statement=request.form.get("statement")).first()
+        db.session.add(Chapterwisequestion(question_id=question.id,
+                                           chapter_id=request.form.get("chapter_id")))
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "update":
+        question = Question.query.filter_by(id=id).first()
+        # To be done
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "delete":
+        question = Question.query.filter_by(id=id).first()
+        chapterwisequestions = Chapterwisequestion.query.filter_by(question_id=id).all()
+        quizwisequestions = Quizwisequestion.query.filter_by(question_id=id).all()
+        if question:
+            for questions in chapterwisequestions:
+                db.session.delete(questions)
+            for questions in quizwisequestions:
+                db.session.delete(questions)
+            db.session.delete(question)
+            db.session.commit()
+        return redirect(url_for("admin"))
+    else:
+        flash("Invalid input", "error")
+        return redirect(url_for("admin"))
+
 @app.route("/logout")
 def logout():
     session.clear()

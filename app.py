@@ -43,7 +43,7 @@ class Quiz(db.Model):
     name = db.Column(db.String(), nullable=False)
     quiz_date = db.Column(db.Date, nullable=False)
     time_duration = db.Column(db.Time, nullable=False)
-    question = db.relationship('Chapterwisequestion', backref="quiz")
+    question = db.relationship('Quizwisequestion', backref="quiz")
     score = db.relationship('Score', backref="quiz")
 
 class Question(db.Model):
@@ -55,12 +55,16 @@ class Question(db.Model):
     option3 = db.Column(db.String(), nullable=False)
     option4 = db.Column(db.String(), nullable=False)
     correct_option = db.Column(db.Integer, nullable=False)
-    quiz = db.relationship('Chapterwisequestion', backref="question")
+    chapter = db.relationship('Chapterwisequestion', backref="question")
+    quiz = db.relationship('Quizwisequestion', backref="question")
 
 class Chapterwisequestion(db.Model):
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), primary_key=True, nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey("question.id"), primary_key=True, nullable=False)
     chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), primary_key=True, nullable=False)
+
+class Quizwisequestion(db.Model):
+    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), primary_key=True, nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey("question.id"), primary_key=True, nullable=False)
 
 class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -73,6 +77,8 @@ with app.app_context():
     # if file doesn't exist then create database
     if not os.path.exists("./instance/database.sqlite3") or not os.path.getsize("./instance/database.sqlite3"):
         db.create_all()
+        db.session.add(Admin(username="admin", password="admin"))
+        db.session.commit()
 
 
 # Flask work
@@ -125,29 +131,112 @@ def signup():
 
 @app.route("/admin/dashboard")
 def admin():
+    if 'username' in session:
+        admin = Admin.query.filter_by(username=session["username"]).first()
+        if not admin:
+            flash("Invalid Credentials!", "error")
+            return redirect(url_for("index"))
+    else:
+        return redirect(url_for("index"))
+
     subjects = Subject.query.all()
+    questions = Question.query.all()
+    chapterwisequestions = Chapterwisequestion.query.all()
     subject_data = []
     for subject in subjects:
         chapters = Chapter.query.filter_by(subject_id=subject.id).all()
-        chapter_with_count = [
+        chapter = [
             {
                 "id": chapter.id,
                 "name": chapter.name,
-                "number_of_questions": Chapterwisequestion.query.filter_by(chapter_id=chapter.id).count()
+                "description": chapter.description,
+                "number_of_questions": Chapterwisequestion.query.filter_by(chapter_id=chapter.id).count(),
+                "questions": db.session.query(Question).join(Chapterwisequestion).filter(Question.id == Chapterwisequestion.question_id).filter_by(chapter_id=chapter.id).all()
             }
             for chapter in chapters
         ]
         subject_data.append({
             "id": subject.id,
             "name": subject.name,
-            "chapters": chapter_with_count
+            "description": subject.description,
+            "chapters": chapter
         })
-    return render_template("admin.html", subjects=subject_data)
+    
+    return render_template("admin.html", subjects=subject_data,
+                           questions=questions,
+                           chapterwisequestions=chapterwisequestions)
 
 @app.route("/<username>")
 def user(username):
     user = User.query.filter_by(username=username).first()
-    return render_template("user.html", user=user)
+    if user and ('username' in session and username == session["username"]):
+        return render_template("user.html", user=user)
+    else:
+        flash("Invalid credentials!", "error")
+        return redirect(url_for("index"))
+
+@app.route("/subject/<action>", methods=["POST"])
+@app.route("/subject/<action>/<int:id>", methods=["POST"])
+def subject(action, id=None):
+    if action == "add":
+        db.session.add(Subject(name=request.form.get("name"), description=request.form.get("description")))
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "update":
+        subject = Subject.query.filter_by(id=id).first()
+        subject.name = request.form.get(f"subject_name{id}")
+        subject.description = request.form.get(f"subject_description{id}")
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "delete":
+        subject = Subject.query.filter_by(id=id).first()
+        chapters = Chapter.query.filter_by(subject_id=id).all()
+        if subject:
+            for chapter in chapters:
+                db.session.delete(chapter)
+            db.session.delete(subject)
+            db.session.commit()
+        return redirect(url_for("admin"))
+    else:
+        flash("Invalid input", "error")
+        return redirect(url_for("admin"))
+    
+@app.route("/chapter/<action>", methods=["POST"])
+@app.route("/chapter/<action>/<int:id>", methods=["POST"])
+def chapter(action, id=None):
+    if action == "add":
+        db.session.add(Chapter(name=request.form.get("name"),
+                               description=request.form.get("description"),
+                               subject_id=request.form.get("subject_id")))
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "update":
+        chapter = Chapter.query.filter_by(id=id).first()
+        chapter.name = request.form.get(f"chapter_name{id}")
+        chapter.description = request.form.get(f"chapter_description{id}")
+        db.session.commit()
+        return redirect(url_for("admin"))
+    elif action == "delete":
+        chapter = Chapter.query.filter_by(id=id).first()
+        if chapter:
+            db.session.delete(chapter)
+            db.session.commit()
+        return redirect(url_for("admin"))
+    else:
+        flash("Invalid input", "error")
+        return redirect(url_for("admin"))
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("index"))
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
 
 if __name__ == "__main__":
     app.run(debug=True)

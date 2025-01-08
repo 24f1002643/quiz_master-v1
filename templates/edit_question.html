@@ -1,0 +1,26 @@
+<div class="modal fade" id="editQuestion{{ subject.id }}{{ chapter.id }}{{ question.id }}" tabindex="-1" role="dialog" aria-labelledby="question{{ subject.id }}{{ chapter.id }}{{ question.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <h5 class="modal-title text-center" id="title{{ subject.id }}{{ chapter.id }}{{ question.id }}">Update Question</h5>
+            </div>
+            <div class="modal-body">
+                <form action="/question/update/{{ question.id }}" id="updateQuestion{{ subject.id }}{{ chapter.id }}{{ question.id }}" method="post">
+                    <div class="form-group">
+                        <label for="title{{ subject.id }}{{ chapter.id }}{{ question.id }}">Name</label>
+                        <input autofocus type="text" class="form-control" id="title{{ subject.id }}{{ chapter.id }}{{ question.id }}" name="title" value="{{ question.title }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="statement{{ subject.id }}{{ chapter.id }}{{ question.id }}">Statement</label>
+                        <textarea class="form-control" id="statement{{ subject.id }}{{ chapter.id }}{{ question.id }}" name="statement" rows="5">{{ question.statement }}</textarea>
+                    </div>
+                    <input type="hidden" name="id{{ question.id }}" value="{{ question.id }}">
+                </form>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal" style="width: 150px;">Cancel</button>
+                <button type="submit" class="btn btn-primary mx-2" form="updateQuestion{{ subject.id }}{{ chapter.id }}{{ question.id }}" style="width: 150px;">Update</button>
+            </div>
+        </div>
+    </div>
+</div>

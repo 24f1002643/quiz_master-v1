@@ -1,0 +1,43 @@
+<div class="modal fade" id="chapter{{ subject.id }}{{ chapter.id }}" tabindex="-1" role="dialog" aria-labelledby="chapterModalLabel{{ subject.id }}{{ chapter.id }}" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chapterModalLabel{{ subject.id }}{{ chapter.id }}">{{ chapter.name }}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <td>ID</td>
+                            <td>Title</td>
+                            <td>Action</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for question in chapter.questions %}
+                        <tr>
+                            <td>{{ question.id }}</td>
+                            <td>{{ question.title }}</td>
+                            <td>
+                                <button type="button" class="btn btn-warning btn-sm" data-toggle="modal" data-target="#editQuestion{{ subject.id }}{{ chapter.id }}{{ question.id }}">Edit</button>
+                                {% include 'edit_question.html' %}
+        
+                                <form action="/question/delete/{{ question.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this question?');" class="mb-0">
+                                    <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="text-end mt-3">
+                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#addQuestion{{ subject.id }}{{ chapter.id }}">Add Question</button>
+                    {% include 'add_question.html' %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

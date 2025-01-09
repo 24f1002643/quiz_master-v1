@@ -1,0 +1,45 @@
+<div class="modal fade" id="addQuiz" tabindex="-1" role="dialog" aria-labelledby="modalTitleQuiz"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header justify-content-center">
+                <h5 class="modal-title text-center" id="quizTitle">New Quiz</h5>
+            </div>
+            <div class="modal-body">
+                <form action="/quiz/add" id="quiz" method="post">
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <select class="form-control" id="subject" name="subject" required>
+                            <option value="" disabled selected>Select a subject</option>
+                            {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input autofocus type="text" class="form-control" id="name" name="name" autocomplete="off" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="date">Date</label>
+                            <input type="date" class="form-control" id="date" name="date" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="hour">Hour</label>
+                            <input autocomplete="on" type="text" class="form-control" id="hour" name="hour" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label for="minute">Minute</label>
+                            <input autocomplete="on" type="text" class="form-control" id="minute" name="minute" required>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal" style="width: 150px;">Cancel</button>
+                <button type="submit" class="btn btn-primary mx-2" form="quiz" style="width: 150px;">Add</button>
+            </div>
+        </div>
+    </div>
+</div>

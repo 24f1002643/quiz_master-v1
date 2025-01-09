@@ -28,18 +28,18 @@ class Subject(db.Model):
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.String())
     chapter = db.relationship('Chapter', backref='subject')
+    quiz = db.relationship('Quiz', backref="subject")
 
 class Chapter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.String())
-    quiz = db.relationship('Quiz', backref="chapter")
-    question = db.relationship('Chapterwisequestion', backref='chapter')
+    question = db.relationship('Question', backref='chapter')
 
 class Quiz(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
     name = db.Column(db.String(), nullable=False)
     quiz_date = db.Column(db.Date, nullable=False)
     time_duration = db.Column(db.Time, nullable=False)
@@ -48,6 +48,7 @@ class Quiz(db.Model):
 
 class Question(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     statement = db.Column(db.String(), nullable=False, unique=True)
     option1 = db.Column(db.String(), nullable=False)
@@ -55,12 +56,7 @@ class Question(db.Model):
     option3 = db.Column(db.String(), nullable=False)
     option4 = db.Column(db.String(), nullable=False)
     correct_option = db.Column(db.Integer, nullable=False)
-    chapter = db.relationship('Chapterwisequestion', backref="question")
     quiz = db.relationship('Quizwisequestion', backref="question")
-
-class Chapterwisequestion(db.Model):
-    question_id = db.Column(db.Integer, db.ForeignKey("question.id"), primary_key=True, nullable=False)
-    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), primary_key=True, nullable=False)
 
 class Quizwisequestion(db.Model):
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), primary_key=True, nullable=False)
@@ -140,29 +136,60 @@ def admin():
         return redirect(url_for("index"))
 
     subjects = Subject.query.all()
-    questions = Question.query.all()
-    chapterwisequestions = Chapterwisequestion.query.all()
     subject_data = []
     for subject in subjects:
-        chapters = Chapter.query.filter_by(subject_id=subject.id).all()
-        chapter = [
+        chapters = [
             {
                 "id": chapter.id,
                 "name": chapter.name,
                 "description": chapter.description,
-                "number_of_questions": Chapterwisequestion.query.filter_by(chapter_id=chapter.id).count(),
-                "questions": db.session.query(Question).join(Chapterwisequestion).filter(Question.id == Chapterwisequestion.question_id).filter_by(chapter_id=chapter.id).all()
+                "number_of_questions": Question.query.filter_by(chapter_id=chapter.id).count(),
+                "questions": Question.query.filter_by(chapter_id=chapter.id).all()
             }
-            for chapter in chapters
+            for chapter in Chapter.query.filter_by(subject_id=subject.id).all()
         ]
         subject_data.append({
             "id": subject.id,
             "name": subject.name,
             "description": subject.description,
-            "chapters": chapter
+            "chapters": chapters
         })
     
     return render_template("admin.html", subjects=subject_data)
+
+@app.route("/admin/quiz")
+def admin_quiz():
+    if 'username' in session:
+        admin = Admin.query.filter_by(username=session["username"]).first()
+        if not admin:
+            flash("Invalid Credentials!", "error")
+            return redirect(url_for("index"))
+    else:
+        return redirect(url_for("index"))
+    
+    subjects = Subject.query.all()
+    subject_data = []
+    for subject in subjects:
+        quizzes = [
+            {
+                "id": quiz.id,
+                "name": quiz.name,
+                "quiz_date": quiz.quiz_date,
+                "time_duration": quiz.time_duration,
+                "quizwisequestions": db.session.query(Question).join(Quizwisequestion).filter(Question.id == Quizwisequestion.question_id).filter_by(quiz_id=quiz.id).all(),
+                "subjectwisequestions": db.session.query(Question.statement, Question.id).join(Chapter).join(Subject).filter(Question.chapter_id == Chapter.id).filter(Subject.id == Chapter.subject_id).filter(Subject.id == subject.id).all()
+            }
+            for quiz in Quiz.query.filter_by(subject_id=subject.id).all()
+        ]
+        subject_data.append({
+            "id": subject.id,
+            "name": subject.name,
+            "description": subject.description,
+            "quizzes": quizzes
+        })
+
+    return render_template("admin_quiz.html", subjects=subject_data)
+    ...
 
 @app.route("/<username>")
 def user(username):
@@ -216,10 +243,10 @@ def chapter(action, id=None):
         return redirect(url_for("admin"))
     elif action == "delete":
         chapter = Chapter.query.filter_by(id=id).first()
-        chapterwisequestions = Chapterwisequestion.query.filter_by(chapter_id=id).all()
+        questions = Question.query.filter_by(chapter_id=id).all()
         quiz = Quiz.query.filter_by(chapter_id=id).all()
         if chapter:
-            for ids in chapterwisequestions:
+            for ids in questions:
                 db.session.delete(ids)
             for ids in quiz:
                 db.session.delete(ids)
@@ -230,20 +257,49 @@ def chapter(action, id=None):
         flash("Invalid input", "error")
         return redirect(url_for("admin"))
 
+@app.route("/quiz/<action>", methods=["POST"])
+@app.route("/quiz/<action>/<int:id>", methods=["POST"])
+def quiz(action, id=None):
+    if action == "add":
+        db.session.add(Quiz(subject_id=request.form.get("subject"),
+                            name=request.form.get("name"),
+                            quiz_date=datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date(),
+                            time_duration=datetime.strptime(request.form.get("hour")+':'+request.form.get("minute"), r'%H:%M').time()))
+        db.session.commit()
+        return redirect(url_for("admin_quiz"))
+    elif action == "update":
+        ...
+    elif action == "delete":
+        ...
+    ...
+
+@app.route("/quiz/question/<action>/<int:quiz_id>", methods=["POST"])
+def add_question_to_quiz(action, quiz_id):
+    if action == "append":
+        print(request.form.get("question_id"))
+        db.session.add(Quizwisequestion(
+            quiz_id=quiz_id,
+            question_id=request.form.get("question_id")
+        ))
+        db.session.commit()
+        return redirect(url_for("admin_quiz"))
+    elif action == "delete":
+        ...
+    ...
+
 @app.route("/question/<action>", methods=["POST"])
 @app.route("/question/<action>/<int:id>", methods=["POST"])
 def question(action, id=None):
     if action == "add":
-        db.session.add(Question(title=request.form.get("title"),
-                                statement=request.form.get("statement"),
-                                option1=request.form.get("option1"),
-                                option2=request.form.get("option2"),
-                                option3=request.form.get("option3"),
-                                option4=request.form.get("option4"),
-                                correct_option=request.form.get("correct_option")))
-        question = Question.query.filter_by(statement=request.form.get("statement")).first()
-        db.session.add(Chapterwisequestion(question_id=question.id,
-                                           chapter_id=request.form.get("chapter_id")))
+        db.session.add(Question(
+            chapter_id=request.form.get("chapter_id"),
+            title=request.form.get("title"),
+            statement=request.form.get("statement"),
+            option1=request.form.get("option1"),
+            option2=request.form.get("option2"),
+            option3=request.form.get("option3"),
+            option4=request.form.get("option4"),
+            correct_option=request.form.get("correct_option")))
         db.session.commit()
         return redirect(url_for("admin"))
     elif action == "update":
@@ -259,11 +315,8 @@ def question(action, id=None):
         return redirect(url_for("admin"))
     elif action == "delete":
         question = Question.query.filter_by(id=id).first()
-        chapterwisequestions = Chapterwisequestion.query.filter_by(question_id=id).all()
         quizwisequestions = Quizwisequestion.query.filter_by(question_id=id).all()
         if question:
-            for questions in chapterwisequestions:
-                db.session.delete(questions)
             for questions in quizwisequestions:
                 db.session.delete(questions)
             db.session.delete(question)

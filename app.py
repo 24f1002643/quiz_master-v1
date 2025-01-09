@@ -162,9 +162,7 @@ def admin():
             "chapters": chapter
         })
     
-    return render_template("admin.html", subjects=subject_data,
-                           questions=questions,
-                           chapterwisequestions=chapterwisequestions)
+    return render_template("admin.html", subjects=subject_data)
 
 @app.route("/<username>")
 def user(username):
@@ -218,7 +216,13 @@ def chapter(action, id=None):
         return redirect(url_for("admin"))
     elif action == "delete":
         chapter = Chapter.query.filter_by(id=id).first()
+        chapterwisequestions = Chapterwisequestion.query.filter_by(chapter_id=id).all()
+        quiz = Quiz.query.filter_by(chapter_id=id).all()
         if chapter:
+            for ids in chapterwisequestions:
+                db.session.delete(ids)
+            for ids in quiz:
+                db.session.delete(ids)
             db.session.delete(chapter)
             db.session.commit()
         return redirect(url_for("admin"))
@@ -244,7 +248,13 @@ def question(action, id=None):
         return redirect(url_for("admin"))
     elif action == "update":
         question = Question.query.filter_by(id=id).first()
-        # To be done
+        question.title=request.form.get("title")
+        question.statement=request.form.get("statement")
+        question.option1=request.form.get("option1")
+        question.option2=request.form.get("option2")
+        question.option3=request.form.get("option3")
+        question.option4=request.form.get("option4")
+        question.correct_option=request.form.get("correct_option")
         db.session.commit()
         return redirect(url_for("admin"))
     elif action == "delete":

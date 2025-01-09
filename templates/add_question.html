@@ -6,7 +6,7 @@
                 <h5 class="modal-title text-center" id="modalTitle">New Question</h5>
             </div>
             <div class="modal-body">
-                <form action="/question/add" id="question" method="post">
+                <form action="/question/add" id="question{{ subject.id }}{{ chapter.id }}" method="post">
                     <div class="form-group">
                         <input autofocus type="text" class="form-control" id="title" name="title" autocomplete="off" placeholder="Title" required>
                     </div>
@@ -57,7 +57,7 @@
             </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal" style="width: 150px;">Cancel</button>
-                <button type="submit" class="btn btn-primary mx-2" form="question" style="width: 150px;">Add</button>
+                <button type="submit" class="btn btn-primary mx-2" form="question{{ subject.id }}{{ chapter.id }}" style="width: 150px;">Add</button>
             </div>
         </div>
     </div>

@@ -1,12 +1,12 @@
-<div class="modal fade" id="editChapter{{ chapter.id }}" tabindex="-1" role="dialog" aria-labelledby="modalTitleChapter{{ chapter.id }}"
+<div class="modal fade" id="editChapter{{ subject.id }}{{ chapter.id }}" tabindex="-1" role="dialog" aria-labelledby="modalTitleChapter{{ subject.id }}{{ chapter.id }}"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
             <div class="modal-header justify-content-center">
-                <h5 class="modal-title text-center" id="modalTitleChapter{{ chapter.id }}">Update Chapter</h5>
+                <h5 class="modal-title text-center" id="modalTitleChapter{{ subject.id }}{{ chapter.id }}">Update Chapter</h5>
             </div>
             <div class="modal-body">
-                <form action="/chapter/update/{{ chapter.id }}" id="updateChapter{{ chapter.id }}" method="post">
+                <form action="/chapter/update/{{ chapter.id }}" id="updateChapter{{ subject.id }}{{ chapter.id }}" method="post">
                     <div class="form-group">
                         <label for="chapter_name{{ chapter.id }}">Name</label>
                         <input autofocus type="text" class="form-control" id="chapter_name{{ chapter.id }}" name="chapter_name{{ chapter.id }}" value="{{ chapter.name }}" required>
@@ -20,7 +20,7 @@
             </div>
             <div class="modal-footer justify-content-center">
                 <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal" style="width: 150px;">Cancel</button>
-                <button type="submit" class="btn btn-primary mx-2" form="updateChapter{{ chapter.id }}" style="width: 150px;">Update</button>
+                <button type="submit" class="btn btn-primary mx-2" form="updateChapter{{ subject.id }}{{ chapter.id }}" style="width: 150px;">Update</button>
             </div>
         </div>
     </div>

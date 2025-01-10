@@ -21,6 +21,8 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     dob = db.Column(db.Date)
+    deleted = db.Column(db.Boolean, default=0)
+    blocked = db.Column(db.Boolean, default=0)
     score = db.relationship("Score", backref="user")
 
 class Subject(db.Model):
@@ -74,6 +76,7 @@ with app.app_context():
     if not os.path.exists("./instance/database.sqlite3") or not os.path.getsize("./instance/database.sqlite3"):
         db.create_all()
         db.session.add(Admin(username="admin", password="admin"))
+        db.session.add(User(name="Samar", username="samar", password="4554", dob=datetime.strptime("2004-08-22", r'%Y-%m-%d').date()))
         db.session.commit()
 
 
@@ -190,6 +193,38 @@ def admin_quiz():
 
     return render_template("admin_quiz.html", subjects=subject_data)
     ...
+
+@app.route("/admin/users")
+@app.route("/admin/user/<action>/<int:id>", methods=["POST"])
+def admin_users(action=None, id=None):
+    if request.method == "POST":
+        if action == "block":
+            user = User.query.filter_by(id=id).first()
+            if user:
+                user.blocked = 1
+                db.session.commit()
+        elif action == "unblock":
+            user = User.query.filter_by(id=id).first()
+            if user:
+                user.blocked = 0
+                db.session.commit()
+        elif action == "delete":
+            user = User.query.filter_by(id=id).first()
+            if user:
+                user.deleted = 1
+                db.session.commit()
+        return redirect("/admin/users")
+
+    if 'username' in session:
+        admin = Admin.query.filter_by(username=session["username"]).first()
+        if not admin:
+            flash("Invalid Credentials!", "error")
+            return redirect(url_for("index"))
+    else:
+        return redirect(url_for("index"))
+    
+    users = User.query.filter(User.deleted == 0).all()
+    return render_template("admin_users.html", users=users)
 
 @app.route("/<username>")
 def user(username):

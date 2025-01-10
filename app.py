@@ -137,7 +137,7 @@ def admin():
             return redirect(url_for("index"))
     else:
         return redirect(url_for("index"))
-
+    
     subjects = Subject.query.all()
     subject_data = []
     for subject in subjects:
@@ -159,6 +159,31 @@ def admin():
         })
     
     return render_template("admin.html", subjects=subject_data)
+
+@app.route("/admin/dashboard/search")
+def admin_search():
+    query = request.args.get("q").strip()
+    print(query)
+    subjects = Subject.query.filter(Subject.name.ilike(f"%{query}%")).all()
+    subject_data = []
+    for subject in subjects:
+        chapters = [
+            {
+                "id": chapter.id,
+                "name": chapter.name,
+                "description": chapter.description,
+                "number_of_questions": Question.query.filter_by(chapter_id=chapter.id).count(),
+                "questions": Question.query.filter_by(chapter_id=chapter.id).all()
+            }
+            for chapter in Chapter.query.filter_by(subject_id=subject.id).all()
+        ]
+        subject_data.append({
+            "id": subject.id,
+            "name": subject.name,
+            "description": subject.description,
+            "chapters": chapters
+        })
+    return render_template("subject.html", subjects=subject_data, search=True)
 
 @app.route("/admin/quiz")
 def admin_quiz():

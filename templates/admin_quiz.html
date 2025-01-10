@@ -81,65 +81,193 @@
             <button type="button" id="add-quiz" class="btn btn-success" data-toggle="modal" data-target="#addQuiz">
                 Add Quiz
             </button>
-            {% include 'add_quiz.html' %}
+            <div class="modal fade" id="addQuiz" tabindex="-1" role="dialog" aria-labelledby="modalTitleQuiz"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header justify-content-center">
+                            <h5 class="modal-title text-center" id="quizTitle">New Quiz</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/quiz/add" id="quiz" method="post">
+                                <div class="form-group">
+                                    <label for="subject">Subject</label>
+                                    <select class="form-control" id="subject" name="subject" required>
+                                        <option value="" disabled selected>Select a subject</option>
+                                        {% for subject in subjects %}
+                                        <option value="{{ subject.id }}">{{ subject.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="name">Name</label>
+                                    <input autofocus type="text" class="form-control" id="name" name="name"
+                                        autocomplete="off" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group col-md-6">
+                                        <label for="date">Date</label>
+                                        <input type="date" class="form-control" id="date" name="date" required>
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="hour">Hour</label>
+                                        <input autocomplete="on" type="text" class="form-control" id="hour" name="hour"
+                                            required>
+                                    </div>
+                                    <div class="form-group col-md-3">
+                                        <label for="minute">Minute</label>
+                                        <input autocomplete="on" type="text" class="form-control" id="minute"
+                                            name="minute" required>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer justify-content-center">
+                            <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal"
+                                style="width: 150px;">Cancel</button>
+                            <button type="submit" class="btn btn-primary mx-2" form="quiz"
+                                style="width: 150px;">Add</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Quizzes -->
         <div class="quiz-container row">
             {% for subject in subjects %}
-                {% for quiz in subject.quizzes %}
-                <div class="col-md-6 quiz-card">
-                    <div class="card">
-                        <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
-                            <h5 class="card-title m-0">{{ quiz.name }} - {{ subject.name }} :- {{ quiz.quiz_date }} {{ quiz.time_duration }}</h5>
-                            <div class="d-flex align-items-center">
-                                <button type="button" class="btn btn-warning btn-sm edit_button" data-toggle="modal" data-target="#editQuiz{{ quiz.id }}">
-                                    Edit
-                                </button>
-                                {% include 'edit_quiz.html' %}
-                                
-                                <form action="/quiz/delete/{{ quiz.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this quiz?');" class="mb-0">
-                                    <button class="btn btn-danger btn-sm" type="submit">Delete</button>
-                                </form>
+            {% for quiz in subject.quizzes %}
+            <div class="col-md-6 quiz-card">
+                <div class="card">
+                    <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
+                        <h5 class="card-title m-0">{{ quiz.name }} - {{ subject.name }} :- {{ quiz.quiz_date }} {{
+                            quiz.time_duration }}</h5>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-warning btn-sm edit_button" data-toggle="modal"
+                                data-target="#editQuiz{{ quiz.id }}">
+                                Edit
+                            </button>
+                            <div class="modal fade" id="editQuiz{{ quiz.id }}" tabindex="-1" role="dialog"
+                                aria-labelledby="TitleQuiz{{ quiz.id }}" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header justify-content-center">
+                                            <h5 style="color: #000;" class="modal-title text-center"
+                                                id="quizTitle{{ quiz.id }}">Update Quiz</h5>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form action="/quiz/update/{{ quiz.id }}" id="quiz{{ quiz.id }}"
+                                                method="post">
+                                                <div class="form-group">
+                                                    <label for="name" style="color: #000;">Name</label>
+                                                    <input autofocus type="text" class="form-control" id="name"
+                                                        name="name" value="{{ quiz.name }}" required>
+                                                </div>
+                                                <div class="form-row">
+                                                    <div class="form-group col-md-6">
+                                                        <label for="date" style="color: #000;">Date</label>
+                                                        <input type="date" class="form-control" id="date" name="date"
+                                                            value="{{ quiz.quiz_date }}" required>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label for="hour" style="color: #000;">Hour</label>
+                                                        <input type="text" class="form-control" id="hour" name="hour"
+                                                            required>
+                                                    </div>
+                                                    <div class="form-group col-md-3">
+                                                        <label for="minute" style="color: #000;">Minute</label>
+                                                        <input type="text" class="form-control" id="minute"
+                                                            name="minute" required>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer justify-content-center">
+                                            <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal"
+                                                style="width: 150px;">Cancel</button>
+                                            <button type="submit" class="btn btn-primary mx-2" form="quiz{{ quiz.id }}"
+                                                style="width: 150px;">Update</button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>                    
-                        <div class="card-body d-flex flex-column">
-                            <table class="table table-striped mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Question title</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for question in quiz.quizwisequestions %}
-                                    <tr>
-                                        <td>{{ loop.index }}</td>
-                                        <td>{{ question.title }}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <form action="/quiz/question/delete/{{ quiz.id }}" method="post" class="mb-0">
-                                                    <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
-                                                    <input type="hidden" value="{{ question.id }}" name="question_id">
-                                                </form>
+
+                            <form action="/quiz/delete/{{ quiz.id }}" method="post"
+                                onsubmit="return confirm('Are you sure you want to delete this quiz?');" class="mb-0">
+                                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Question title</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for question in quiz.quizwisequestions %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ question.title }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <form action="/quiz/question/delete/{{ quiz.id }}" method="post"
+                                                class="mb-0">
+                                                <button class="btn btn-outline-danger btn-sm"
+                                                    type="submit">Delete</button>
+                                                <input type="hidden" value="{{ question.id }}" name="question_id">
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <div class="text-end mt-3">
+                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal"
+                                data-target="#appendQuestion{{ subject.id }}{{ quiz.id }}">
+                                Add Question
+                            </button>
+                        </div>
+                        <div class="modal fade" id="appendQuestion{{ subject.id }}{{ quiz.id }}" tabindex="-1"
+                            role="dialog" aria-labelledby="modalTitleQuizQuestion" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header justify-content-center">
+                                        <h5 class="modal-title text-center" id="quizTitle">Append Question</h5>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form action="/quiz/question/append/{{quiz.id}}"
+                                            id="append_question{{ subject.id }}{{ quiz.id }}" method="post">
+                                            <div class="form-group">
+                                                <label for="question">Question</label>
+                                                <select class="form-control" id="question" name="question_id" required>
+                                                    <option value="" disabled selected>Select a question</option>
+                                                    {% for question in quiz.subjectwisequestions %}
+                                                    <option value="{{ question.id }}">{{ question.statement }}</option>
+                                                    {% endfor %}
+                                                </select>
                                             </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                            <div class="text-end mt-3">
-                                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#appendQuestion{{ subject.id }}{{ quiz.id }}">
-                                    Add Question
-                                </button>
+                                        </form>
+                                    </div>
+                                    <div class="modal-footer justify-content-center">
+                                        <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal"
+                                            style="width: 150px;">Cancel</button>
+                                        <button type="submit" class="btn btn-primary mx-2"
+                                            form="append_question{{ subject.id }}{{ quiz.id }}"
+                                            style="width: 150px;">Add</button>
+                                    </div>
+                                </div>
                             </div>
-                            {% include 'append_question_in_quiz.html' %}
                         </div>
                     </div>
                 </div>
-                {% endfor %}
+            </div>
             {% endfor %}
-        </div>                
+            {% endfor %}
+        </div>
     </div>
 </div>
 {% endblock %}

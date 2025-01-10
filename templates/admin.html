@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% block head %}
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.js"></script>
 <style>
     .container-custom {
         max-width: 1200px;
@@ -24,6 +25,10 @@
     .edit_button {
         margin-right: 5px;
     }
+
+    .nav-item {
+        margin-right: 5px;
+    }
 </style>
 {% endblock %}
 {% block title %}Admin{% endblock %}
@@ -41,7 +46,8 @@
                 <a class="nav-link" href="/admin/quiz">Quiz</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="">Search</a>
+                <input class="form-control" type="search" placeholder="Search" aria-label="Search" name="q"
+                    hx-get="{{url_for('admin_search')}}" hx-trigger="keyup changed delay:500ms" hx-target="#search-results">
             </li>
             <li>
                 <form action="/logout" class="d-inline">
@@ -66,74 +72,48 @@
             {% endwith %}
         </div>
         <div>
-            <button type="button" id="add-subject" class="btn btn-success" data-toggle="modal" data-target="#addSubject">
+            <button type="button" id="add-subject" class="btn btn-success" data-toggle="modal"
+                data-target="#addSubject">
                 Add Subject
             </button>
-            {% include 'add_subject.html' %}
-        </div>
-        <!-- Subjects -->
-        <div class="subjects-container row">
-            {% for subject in subjects %}
-            <div class="col-md-6 subject-card">
-                <div class="card">
-                    <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
-                        <h5 class="card-title m-0">{{ subject.name }}</h5>
-                        <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-warning btn-sm edit_button" data-toggle="modal" data-target="#editSubject{{ subject.id }}">
-                                Edit
-                            </button>
-                            {% include 'edit_subject.html' %}
-                            
-                            <form action="/subject/delete/{{ subject.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this subject?');" class="mb-0">
-                                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
+            <div class="modal fade" id="addSubject" tabindex="-1" role="dialog" aria-labelledby="modalTitle"
+                aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header justify-content-center">
+                            <h5 class="modal-title text-center" id="modalTitle">New Subject</h5>
+                        </div>
+                        <div class="modal-body">
+                            <form action="/subject/add" id="subject" method="post">
+                                <div class="form-group">
+                                    <label for="name">Name</label>
+                                    <input autofocus type="text" class="form-control" id="name" name="name"
+                                        autocomplete="off" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description">Description</label>
+                                    <textarea class="form-control" id="description" name="description" rows="5"
+                                        required></textarea>
+                                </div>
                             </form>
                         </div>
-                    </div>                    
-                    <div class="card-body d-flex flex-column">
-                        <table class="table table-striped mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Chapter Name</th>
-                                    <th>No. of Questions</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for chapter in subject.chapters %}
-                                <tr>
-                                    <td>
-                                        <a href="#" data-toggle="modal"
-                                            data-target="#chapter{{ subject.id }}{{ chapter.id }}">{{ chapter.name }}</a>
-                                        {% include 'chapter.html' %}
-                                    </td>
-                                    <td>{{ chapter.number_of_questions }}</td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <button type="button" class="btn btn-outline-primary btn-sm me-2 edit_button" data-toggle="modal" data-target="#editChapter{{ chapter.id }}">
-                                                Edit
-                                            </button>
-                                            {% include 'edit_chapter.html' %}
-        
-                                            <form action="/chapter/delete/{{ chapter.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this chapter?');" class="mb-0">
-                                                <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <div class="text-end mt-3">
-                            <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#addChapter{{ subject.id }}">
-                                Add Chapter
-                            </button>
+                        <div class="modal-footer justify-content-center">
+                            <button type="button" class="btn btn-secondary mx-2" data-dismiss="modal"
+                                style="width: 150px;">Cancel</button>
+                            <button type="submit" class="btn btn-primary mx-2" form="subject"
+                                style="width: 150px;">Add</button>
                         </div>
-                        {% include 'add_chapter.html' %}
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        </div>                
+        </div>
+        {% if search %}
+        <div id="search-results">
+
+        </div>
+        {% else %}
+        {% include 'subject.html' %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

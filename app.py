@@ -160,30 +160,57 @@ def admin():
     
     return render_template("admin.html", subjects=subject_data)
 
-@app.route("/admin/dashboard/search")
-def admin_search():
+@app.route("/admin/dashboard/search/<type>")
+def admin_search(type):
     query = request.args.get("q").strip()
-    print(query)
-    subjects = Subject.query.filter(Subject.name.ilike(f"%{query}%")).all()
-    subject_data = []
-    for subject in subjects:
-        chapters = [
-            {
-                "id": chapter.id,
-                "name": chapter.name,
-                "description": chapter.description,
-                "number_of_questions": Question.query.filter_by(chapter_id=chapter.id).count(),
-                "questions": Question.query.filter_by(chapter_id=chapter.id).all()
-            }
-            for chapter in Chapter.query.filter_by(subject_id=subject.id).all()
-        ]
-        subject_data.append({
-            "id": subject.id,
-            "name": subject.name,
-            "description": subject.description,
-            "chapters": chapters
-        })
-    return render_template("subject.html", subjects=subject_data, search=True)
+    if type == "subject":
+        subjects = Subject.query.filter(Subject.name.ilike(f"%{query}%")).all()
+        subject_data = []
+        for subject in subjects:
+            chapters = [
+                {
+                    "id": chapter.id,
+                    "name": chapter.name,
+                    "description": chapter.description,
+                    "number_of_questions": Question.query.filter_by(chapter_id=chapter.id).count(),
+                    "questions": Question.query.filter_by(chapter_id=chapter.id).all()
+                }
+                for chapter in Chapter.query.filter_by(subject_id=subject.id).all()
+            ]
+            subject_data.append({
+                "id": subject.id,
+                "name": subject.name,
+                "description": subject.description,
+                "chapters": chapters
+            })
+        return render_template("subject.html", subjects=subject_data, search=True)
+    elif type == "quiz":
+        subjects = Subject.query.all()
+        subject_data = []
+        for subject in subjects:
+            quizzes = [
+                {
+                    "id": quiz.id,
+                    "name": quiz.name,
+                    "quiz_date": quiz.quiz_date,
+                    "time_duration": quiz.time_duration,
+                    "quizwisequestions": db.session.query(Question).join(Quizwisequestion).filter(Question.id == Quizwisequestion.question_id).filter_by(quiz_id=quiz.id).all(),
+                    "subjectwisequestions": db.session.query(Question.statement, Question.id).join(Chapter).join(Subject).filter(Question.chapter_id == Chapter.id).filter(Subject.id == Chapter.subject_id).filter(Subject.id == subject.id).all()
+                }
+                for quiz in Quiz.query.filter(db.or_(Quiz.name.ilike(f"%{query}%"), Quiz.quiz_date.ilike(f"%{query}%"))).filter_by(subject_id=subject.id).all()
+            ]
+            subject_data.append({
+                "id": subject.id,
+                "name": subject.name,
+                "description": subject.description,
+                "quizzes": quizzes
+            })
+
+        return render_template("quiz.html", subjects=subject_data, search=True)
+    elif type == "user":
+        users = User.query.filter(User.deleted == 0).filter(db.or_(User.name.ilike(f"%{query}%"), User.username.ilike(f"%{query}%"), User.dob.ilike(f"%{query}%"))).all()
+        return render_template("users.html", users=users, search=True)
+        ...
 
 @app.route("/admin/quiz")
 def admin_quiz():

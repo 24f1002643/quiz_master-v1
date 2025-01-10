@@ -24,7 +24,21 @@
     .edit_button {
         margin-right: 5px;
     }
+
+    .success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+
+    .error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
 </style>
+
+
 {% endblock %}
 {% block title %}Quiz{% endblock %}
 {% block content %}
@@ -75,14 +89,14 @@
                 <div class="col-md-6 quiz-card">
                     <div class="card">
                         <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
-                            <h5 class="card-title m-0">{{ quiz.name }} - {{ subject.name }}</h5>
+                            <h5 class="card-title m-0">{{ quiz.name }} - {{ subject.name }} :- {{ quiz.quiz_date }} {{ quiz.time_duration }}</h5>
                             <div class="d-flex align-items-center">
                                 <button type="button" class="btn btn-warning btn-sm edit_button" data-toggle="modal" data-target="#editQuiz{{ quiz.id }}">
                                     Edit
                                 </button>
                                 {% include 'edit_quiz.html' %}
                                 
-                                <form action="" method="post" onsubmit="return confirm('Are you sure you want to delete this quiz?');" class="mb-0">
+                                <form action="/quiz/delete/{{ quiz.id }}" method="post" onsubmit="return confirm('Are you sure you want to delete this quiz?');" class="mb-0">
                                     <button class="btn btn-danger btn-sm" type="submit">Delete</button>
                                 </form>
                             </div>
@@ -103,8 +117,9 @@
                                         <td>{{ question.title }}</td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <form action="" method="post" class="mb-0">
+                                                <form action="/quiz/question/delete/{{ quiz.id }}" method="post" class="mb-0">
                                                     <button class="btn btn-outline-danger btn-sm" type="submit">Delete</button>
+                                                    <input type="hidden" value="{{ question.id }}" name="question_id">
                                                 </form>
                                             </div>
                                         </td>

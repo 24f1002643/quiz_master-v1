@@ -206,13 +206,12 @@ def subject(action, id=None):
     if action == "add":
         db.session.add(Subject(name=request.form.get("name"), description=request.form.get("description")))
         db.session.commit()
-        return redirect(url_for("admin"))
     elif action == "update":
         subject = Subject.query.filter_by(id=id).first()
-        subject.name = request.form.get(f"subject_name{id}")
-        subject.description = request.form.get(f"subject_description{id}")
-        db.session.commit()
-        return redirect(url_for("admin"))
+        if subject:
+            subject.name = request.form.get(f"subject_name{id}")
+            subject.description = request.form.get(f"subject_description{id}")
+            db.session.commit()
     elif action == "delete":
         subject = Subject.query.filter_by(id=id).first()
         chapters = Chapter.query.filter_by(subject_id=id).all()
@@ -221,10 +220,9 @@ def subject(action, id=None):
                 db.session.delete(chapter)
             db.session.delete(subject)
             db.session.commit()
-        return redirect(url_for("admin"))
     else:
         flash("Invalid input", "error")
-        return redirect(url_for("admin"))
+    return redirect(url_for("admin"))
     
 @app.route("/chapter/<action>", methods=["POST"])
 @app.route("/chapter/<action>/<int:id>", methods=["POST"])
@@ -234,13 +232,12 @@ def chapter(action, id=None):
                                description=request.form.get("description"),
                                subject_id=request.form.get("subject_id")))
         db.session.commit()
-        return redirect(url_for("admin"))
     elif action == "update":
         chapter = Chapter.query.filter_by(id=id).first()
-        chapter.name = request.form.get(f"chapter_name{id}")
-        chapter.description = request.form.get(f"chapter_description{id}")
-        db.session.commit()
-        return redirect(url_for("admin"))
+        if chapter:
+            chapter.name = request.form.get(f"chapter_name{id}")
+            chapter.description = request.form.get(f"chapter_description{id}")
+            db.session.commit()
     elif action == "delete":
         chapter = Chapter.query.filter_by(id=id).first()
         questions = Question.query.filter_by(chapter_id=id).all()
@@ -252,10 +249,9 @@ def chapter(action, id=None):
                 db.session.delete(ids)
             db.session.delete(chapter)
             db.session.commit()
-        return redirect(url_for("admin"))
     else:
         flash("Invalid input", "error")
-        return redirect(url_for("admin"))
+    return redirect(url_for("admin"))
 
 @app.route("/quiz/<action>", methods=["POST"])
 @app.route("/quiz/<action>/<int:id>", methods=["POST"])
@@ -266,26 +262,42 @@ def quiz(action, id=None):
                             quiz_date=datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date(),
                             time_duration=datetime.strptime(request.form.get("hour")+':'+request.form.get("minute"), r'%H:%M').time()))
         db.session.commit()
-        return redirect(url_for("admin_quiz"))
     elif action == "update":
-        ...
+        quiz = Quiz.query.filter_by(id=id).first()
+        if quiz:
+            quiz.name = request.form.get("name")
+            quiz.quiz_date = datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date(),
+            quiz.time_duration = datetime.strptime(request.form.get("hour")+':'+request.form.get("minute"), r'%H:%M').time()
+            db.session.commit()
     elif action == "delete":
-        ...
-    ...
+        quiz = Quiz.query.filter_by(id=id).first()
+        if quiz:
+            for obj in Quizwisequestion.query.filter_by(quiz_id=id).all():
+                db.session.delete(obj)
+            db.session.delete(quiz)
+            db.session.commit()
+    else:
+        flash("Invalid input", "error")
+    return redirect(url_for("admin_quiz"))
 
 @app.route("/quiz/question/<action>/<int:quiz_id>", methods=["POST"])
 def add_question_to_quiz(action, quiz_id):
+    question_id = request.form.get("question_id")
     if action == "append":
-        print(request.form.get("question_id"))
-        db.session.add(Quizwisequestion(
-            quiz_id=quiz_id,
-            question_id=request.form.get("question_id")
-        ))
-        db.session.commit()
-        return redirect(url_for("admin_quiz"))
+        if not Quizwisequestion.query.filter_by(quiz_id=quiz_id, question_id=question_id).first():
+            db.session.add(Quizwisequestion(
+                quiz_id=quiz_id,
+                question_id=question_id
+            ))
+            db.session.commit()
+        else:
+            flash("Question already exist in quiz!", "error")
     elif action == "delete":
-        ...
-    ...
+        question = Quizwisequestion.query.filter_by(question_id=question_id, quiz_id=quiz_id).first()
+        if question:
+            db.session.delete(question)
+            db.session.commit()
+    return redirect(url_for("admin_quiz"))
 
 @app.route("/question/<action>", methods=["POST"])
 @app.route("/question/<action>/<int:id>", methods=["POST"])

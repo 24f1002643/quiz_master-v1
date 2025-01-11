@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, request, session, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 import os
-from datetime import datetime, date
+from datetime import datetime
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///database.sqlite3"
@@ -67,7 +67,8 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    attempt_time = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+    start_time = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+    end_time = db.Column(db.DateTime, server_default=db.func.current_timestamp())
     user_score = db.Column(db.Integer, nullable=False)
 
 with app.app_context():
@@ -93,11 +94,15 @@ def index():
             session["password"] = password
             return redirect(url_for("admin"))
         elif user:
-            session["username"] = username
-            session["password"] = password
-            return redirect(url_for("user", username=username))
+            if user.blocked == 0:
+                session["username"] = username
+                session["password"] = password
+                return redirect(url_for("user", username=username))
+            else:
+                flash("You are blocked from using the site!", "error")
+                return redirect(url_for("index"))
         else:
-            flash("Invalid credentials", 'error')
+            flash("Invalid credentials", "error")
             return redirect("/")
     return render_template("index.html")
 
@@ -205,11 +210,10 @@ def admin_search(type):
                 "quizzes": quizzes
             })
 
-        return render_template("quiz.html", subjects=subject_data, search=True)
+        return render_template("quiz.html", subjects=subject_data, search=True, current_time=datetime.now().date())
     elif type == "user":
         users = User.query.filter(db.or_(User.name.ilike(f"%{query}%"), User.username.ilike(f"%{query}%"), User.dob.ilike(f"%{query}%"))).all()
         return render_template("users.html", users=users, search=True)
-        ...
 
 @app.route("/admin/quiz")
 def admin_quiz():
@@ -242,8 +246,7 @@ def admin_quiz():
             "quizzes": quizzes
         })
 
-    return render_template("admin_quiz.html", subjects=subject_data)
-    ...
+    return render_template("admin_quiz.html", subjects=subject_data, current_time=datetime.now().date())
 
 @app.route("/admin/users")
 @app.route("/admin/user/<action>/<int:id>", methods=["POST"])
@@ -281,29 +284,130 @@ def admin_users(action=None, id=None):
 def user(username):
     user = User.query.filter_by(username=username).first()
     if user and ('username' in session and username == session["username"]):
-        subjects = Subject.query.all()
+        data = db.session.query(
+            Quiz.id.label("quiz_id"),
+            Subject.id.label("subject_id"),
+            Quiz.name.label("quiz_name"),
+            Subject.name.label("subject_name"),
+            Quiz.quiz_date,
+            Quiz.time_duration
+        ).join(Subject, Quiz.subject_id == Subject.id).filter(
+            Quiz.quiz_date > datetime.now()
+        ).all()
         subject_data = []
-        for subject in subjects:
-            quizzes = [
-                {
-                    "id": quiz.id,
-                    "name": quiz.name,
-                    "quiz_date": quiz.quiz_date,
-                    "time_duration": quiz.time_duration,
-                    "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=quiz.id).count()
-                }
-                for quiz in Quiz.query.filter(Quiz.quiz_date>datetime.now()).filter_by(subject_id=subject.id).all()
-            ]
+        for row in data:
             subject_data.append({
-                "id": subject.id,
-                "name": subject.name,
-                "description": subject.description,
-                "quizzes": quizzes
+                "subject_id": row.subject_id,
+                "subject_name": row.subject_name,
+                "quiz_id": row.quiz_id,
+                "quiz_name": row.quiz_name,
+                "quiz_date": row.quiz_date,
+                "time_duration": row.time_duration,
+                "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
             })
-        return render_template("user.html", user=user, subjects=subject_data)
+        return render_template("user.html", user=user, data=subject_data)
     else:
         flash("Invalid credentials!", "error")
         return redirect(url_for("index"))
+
+@app.route("/search")
+def user_quiz():
+    query = request.args.get("q").strip()
+    data = db.session.query(
+        Quiz.id.label("quiz_id"),
+        Quiz.name.label("quiz_name"),
+        Subject.name.label("subject_name"),
+        Quiz.quiz_date,
+        Quiz.time_duration
+    ).join(Subject, Quiz.subject_id == Subject.id).filter(
+        db.and_(
+            Quiz.quiz_date > datetime.now(),
+            db.or_(
+                Quiz.name.ilike(f"%{query}%"),
+                Subject.name.ilike(f"%{query}%"),
+                Quiz.quiz_date.ilike(f"%{query}%")
+            )
+        )
+    ).all()
+    subject_data = []
+    for row in data:
+        subject_data.append({
+            "subject_name": row.subject_name,
+            "quiz_id": row.quiz_id,
+            "quiz_name": row.quiz_name,
+            "quiz_date": row.quiz_date,
+            "time_duration": row.time_duration,
+            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
+        })
+    return render_template("upcoming_quiz.html", data=subject_data, search=True)
+
+@app.route("/<username>/score")
+def user_score(username):
+    user = User.query.filter_by(username=username).first()
+    if not user or (not 'username' in session or username != session["username"]):
+        flash("Invalid credentials!", "error")
+        return redirect(url_for("index"))
+    
+    data = []
+    tmp_data = db.session.query(
+        Quiz.id.label("quiz_id"),
+        Quiz.name.label("quiz_name"),
+        Subject.name.label("subject_name"),
+        Quiz.quiz_date,
+        Quiz.time_duration,
+        Score.start_time,
+        Score.end_time,
+        Score.user_score
+    ).join(Subject, Quiz.subject_id == Subject.id
+    ).join(Score, Score.quiz_id == Quiz.id).filter(Score.user_id==User.id).all()
+
+    for row in tmp_data:
+        data.append({
+            "quiz_id":row.quiz_id,
+            "quiz_name":row.quiz_name,
+            "subject_name":row.subject_name,
+            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "quiz_date":row.quiz_date,
+            "time_duration":row.time_duration,
+            "attempt_time":row.end_time-row.start_time,
+            "user_score":row.user_score
+        })
+    return render_template("user_score.html", user=user, data=data)
+
+@app.route("/<username>/score/search")
+def user_score_search(username):
+    query = request.args.get("q").strip()
+
+    data = []
+    tmp_data = db.session.query(
+        Quiz.id.label("quiz_id"),
+        Quiz.name.label("quiz_name"),
+        Subject.name.label("subject_name"),
+        Quiz.quiz_date,
+        Quiz.time_duration,
+        Score.start_time,
+        Score.end_time,
+        Score.user_score
+    ).join(Subject, Quiz.subject_id == Subject.id
+    ).join(Score, Score.quiz_id == Quiz.id).filter(Score.user_id==User.id).filter(
+        db.or_(
+                Quiz.name.ilike(f"%{query}%"),
+                Subject.name.ilike(f"%{query}%"),
+                Quiz.quiz_date.ilike(f"%{query}%")
+            )
+    ).all()
+    for row in tmp_data:
+        data.append({
+            "quiz_id":row.quiz_id,
+            "quiz_name":row.quiz_name,
+            "subject_name":row.subject_name,
+            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "quiz_date":row.quiz_date,
+            "time_duration":row.time_duration,
+            "attempt_time":row.end_time-row.start_time,
+            "user_score":row.user_score
+        })
+    return render_template("quiz_score.html", data=data, search=True)
 
 @app.route("/subject/<action>", methods=["POST"])
 @app.route("/subject/<action>/<int:id>", methods=["POST"])

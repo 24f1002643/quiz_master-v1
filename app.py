@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, request, session, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///database.sqlite3"
@@ -21,7 +21,6 @@ class User(db.Model):
     username = db.Column(db.String(255), nullable=False, unique=True)
     password = db.Column(db.String(255), nullable=False)
     dob = db.Column(db.Date)
-    deleted = db.Column(db.Boolean, default=0)
     blocked = db.Column(db.Boolean, default=0)
     score = db.relationship("Score", backref="user")
 
@@ -208,7 +207,7 @@ def admin_search(type):
 
         return render_template("quiz.html", subjects=subject_data, search=True)
     elif type == "user":
-        users = User.query.filter(User.deleted == 0).filter(db.or_(User.name.ilike(f"%{query}%"), User.username.ilike(f"%{query}%"), User.dob.ilike(f"%{query}%"))).all()
+        users = User.query.filter(db.or_(User.name.ilike(f"%{query}%"), User.username.ilike(f"%{query}%"), User.dob.ilike(f"%{query}%"))).all()
         return render_template("users.html", users=users, search=True)
         ...
 
@@ -263,7 +262,7 @@ def admin_users(action=None, id=None):
         elif action == "delete":
             user = User.query.filter_by(id=id).first()
             if user:
-                user.deleted = 1
+                db.session.delete(user)
                 db.session.commit()
         return redirect("/admin/users")
 
@@ -275,14 +274,33 @@ def admin_users(action=None, id=None):
     else:
         return redirect(url_for("index"))
     
-    users = User.query.filter(User.deleted == 0).all()
+    users = User.query.all()
     return render_template("admin_users.html", users=users)
 
 @app.route("/<username>")
 def user(username):
     user = User.query.filter_by(username=username).first()
     if user and ('username' in session and username == session["username"]):
-        return render_template("user.html", user=user)
+        subjects = Subject.query.all()
+        subject_data = []
+        for subject in subjects:
+            quizzes = [
+                {
+                    "id": quiz.id,
+                    "name": quiz.name,
+                    "quiz_date": quiz.quiz_date,
+                    "time_duration": quiz.time_duration,
+                    "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=quiz.id).count()
+                }
+                for quiz in Quiz.query.filter(Quiz.quiz_date>datetime.now()).filter_by(subject_id=subject.id).all()
+            ]
+            subject_data.append({
+                "id": subject.id,
+                "name": subject.name,
+                "description": subject.description,
+                "quizzes": quizzes
+            })
+        return render_template("user.html", user=user, subjects=subject_data)
     else:
         flash("Invalid credentials!", "error")
         return redirect(url_for("index"))

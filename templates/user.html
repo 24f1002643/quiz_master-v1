@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block head %}
+
+{% endblock %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<!-- Upcoming quizzes -->
+<div class="d-flex justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-info text-white d-flex align-items-center justify-content-between">
+                <h5 class="card-title m-0">Upcoming Quizzes</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-striped mb-0 text-center">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Name</th>
+                            <th class="text-center">Subject</th>
+                            <th class="text-center">No. of Questions</th>
+                            <th class="text-center">Date</th>
+                            <th class="text-center">Duration</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subject in subjects %}
+                        {% for quiz in subject.quizzes %}
+                        <tr>
+                            <td class="text-center">{{ quiz.name }}</td>
+                            <td class="text-center">{{ subject.name }}</td>
+                            <td class="text-center">{{ quiz.no_of_questions }}</td>
+                            <td class="text-center">{{ quiz.quiz_date }}</td>
+                            <td class="text-center">{{ quiz.time_duration }}</td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center">
+                                    <form action="" method="post" class="mb-0">
+                                        <button class="btn btn-outline-success btn-sm" type="submit">Start</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>                    
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

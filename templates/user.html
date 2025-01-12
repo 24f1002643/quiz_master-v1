@@ -31,6 +31,7 @@
     </nav>
     <div id="search-results">
         {% if not search %}
+        {% set username = user.username %}
         {% include 'upcoming_quiz.html' %}
         {% endif %}
     </div>

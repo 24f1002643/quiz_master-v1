@@ -67,7 +67,7 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    start_time = db.Column(db.DateTime, default=db.func.current_timestamp())
+    start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     user_score = db.Column(db.Integer, nullable=False)
 
@@ -343,11 +343,12 @@ def user_quiz(username):
                 "time_duration": row.time_duration,
                 "no_of_questions": no_of_questions
             })
-    return render_template("upcoming_quiz.html", data=subject_data, search=True, username=username)
+    return render_template("upcoming_quiz.html", data=subject_data,
+                           search=True, username=username)
 
-@app.route("/quiz/<int:quiz_id>", methods=["POST"])
-def ongoing_quiz(quiz_id):
-    user = User.query.filter_by(username=request.form.get("username")).first()
+@app.route("/<username>/quiz/<int:quiz_id>", methods=["POST"])
+def ongoing_quiz(username, quiz_id):
+    user = User.query.filter_by(username=username).first()
     quiz = Quiz.query.filter_by(id=quiz_id).first()
     if not user or not quiz:
         flash("Invalid credentials!", "error")

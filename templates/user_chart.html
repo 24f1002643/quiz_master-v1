@@ -1,13 +1,8 @@
 {% extends 'base.html' %}
 {% block head %}
-<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.js"></script>
-<style>
-    .nav-item {
-        margin-right: 5px;
-    }
-</style>
+
 {% endblock %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Summary{% endblock %}
 {% block content %}
 <div class="page-wrapper">
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
@@ -16,10 +11,10 @@
         </a>
         <ul class="nav ml-auto">
             <li class="nav-item">
-                <a class="nav-link" href="/{{user.username}}/score">Scores</a>
+                <a class="nav-link" href="/{{user.username}}">Home</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/{{user.username}}/summary">Summary</a>
+                <a class="nav-link" href="/{{user.username}}/score">Scores</a>
             </li>
             <li class="nav-item">
                 <input class="form-control" type="search" placeholder="Search" aria-label="Search" name="q"
@@ -32,11 +27,7 @@
             </li>
         </ul>
     </nav>
-    <div id="search-results">
-        {% if not search %}
-        {% set username = user.username %}
-        {% include 'upcoming_quiz.html' %}
-        {% endif %}
-    </div>
+    <img src="../static/chart.jpg" alt="Summary Chart">
 </div>
+
 {% endblock %}

@@ -2,6 +2,7 @@ from flask import Flask, render_template, redirect, request, session, url_for, f
 from flask_sqlalchemy import SQLAlchemy
 import os
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///database.sqlite3"
@@ -321,7 +322,7 @@ def user_quiz(username):
         Subject.name.label("subject_name"),
         Quiz.quiz_date,
         Quiz.time_duration
-    ).join(Subject, Quiz.subject_id == Subject.id).filter(
+    ).join(Subject).filter(Quiz.subject_id == Subject.id).filter(
         db.and_(
             Quiz.quiz_date > datetime.now(),
             db.or_(
@@ -354,14 +355,16 @@ def ongoing_quiz(username, quiz_id):
         flash("Invalid credentials!", "error")
         return redirect(url_for("index"))
     
+    
     quiz = {
         "id": quiz.id,
         "name": quiz.name,
         "quiz_date": quiz.quiz_date,
         "time_duration": quiz.time_duration,
         "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "questions": db.session.query(Question).join(Quizwisequestion, Quizwisequestion.quiz_id==quiz.id).all()
+        "questions": db.session.query(Question).join(Quizwisequestion).filter(Quizwisequestion.quiz_id==quiz.id).all()
     }
+    print(quiz)
     return render_template("user_quiz.html", user=user, quiz=quiz)
 
 @app.route("/calculate_score/<int:user_id>/<int:quiz_id>", methods=["POST"])
@@ -598,6 +601,34 @@ def question(action, id=None):
     else:
         flash("Invalid input", "error")
         return redirect(url_for("admin"))
+
+@app.route("/<username>/summary")
+def chart(username):
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        flash("Invalid input", "error")
+        return redirect(url_for("index"))
+    
+    subjects = Subject.query.all()
+    data = []
+    for subject in subjects:
+        data.append({
+            "id": subject.id,
+            "name": subject.name,
+            "no_of_quizzes": db.session.query(Score).join(Quiz, Quiz.id==Score.quiz_id).filter(Quiz.subject_id==subject.id).filter(Score.user_id==user.id).count()
+        })
+    
+    plt.figure(figsize=(8, 5))
+    plt.bar([sub['name'] for sub in data], [sub['no_of_quizzes'] for sub in data], color='skyblue', edgecolor='black')
+    plt.title("Number of Quizzes per Subject", fontsize=14)
+    plt.xlabel("Subject Name", fontsize=12)
+    plt.ylabel("Number of Quizzes", fontsize=12)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.savefig("./static/chart.jpg")
+    
+    return render_template("user_chart.html", user=user)
+    ...
 
 @app.route("/logout")
 def logout():

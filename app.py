@@ -281,6 +281,39 @@ def admin_users(action=None, id=None):
     users = User.query.all()
     return render_template("admin_users.html", users=users)
 
+@app.route("/admin/summary")
+def admin_summary():
+    if 'username' in session:
+        admin = Admin.query.filter_by(username=session["username"]).first()
+        if not admin:
+            flash("Invalid Credentials!", "error")
+            return redirect(url_for("index"))
+    else:
+        return redirect(url_for("index"))
+    
+    subjects = Subject.query.all()
+    data = []
+    for subject in subjects:
+        data.append({
+            "id": subject.id,
+            "name": subject.name,
+            "no_of_quizzes": db.session.query(Score).join(Quiz, Quiz.id==Score.quiz_id).filter(Quiz.subject_id==subject.id).count()
+        })
+    
+    plt.figure(figsize=(8, 5))
+    plt.bar([sub['name'] for sub in data], [sub['no_of_quizzes'] for sub in data], color='skyblue', edgecolor='black')
+    plt.title("Number of Quizzes per Subject", fontsize=14)
+    plt.xlabel("Subject Name", fontsize=12)
+    plt.ylabel("Number of Quizzes", fontsize=12)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    max_quizzes = max(sub['no_of_quizzes'] for sub in data)
+    plt.ylim(0, 10 if max_quizzes < 10 else max_quizzes+1)
+    plt.savefig("./static/user_chart.jpg")
+
+    return render_template("admin_chart.html", admin=admin)
+
 @app.route("/<username>")
 def user(username):
     user = User.query.filter_by(username=username).first()
@@ -413,8 +446,8 @@ def user_score(username):
         Score.start_time,
         Score.end_time,
         Score.user_score
-    ).join(Subject, Quiz.subject_id == Subject.id
-    ).join(Score, Score.quiz_id == Quiz.id).filter(Score.user_id==User.id).all()
+    ).join(Subject).filter(Quiz.subject_id == Subject.id
+    ).join(Score).filter(Score.quiz_id == Quiz.id).filter(Score.user_id==user.id).all()
 
     for row in tmp_data:
         data.append({
@@ -625,7 +658,10 @@ def chart(username):
     plt.ylabel("Number of Quizzes", fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
-    plt.savefig("./static/chart.jpg")
+
+    max_quizzes = max(sub['no_of_quizzes'] for sub in data)
+    plt.ylim(0, 10 if max_quizzes < 10 else max_quizzes+1)
+    plt.savefig("./static/user_chart.jpg")
     
     return render_template("user_chart.html", user=user)
     ...

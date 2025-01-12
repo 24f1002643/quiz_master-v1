@@ -46,6 +46,9 @@
                 <a class="nav-link" href="/admin/quiz">Quiz</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="/admin/summary">Summary</a>
+            </li>
+            <li class="nav-item">
                 <input class="form-control" type="search" placeholder="Search" aria-label="Search" name="q"
                     hx-get="{{url_for('admin_search', type='subject')}}" hx-trigger="keyup changed delay:500ms" hx-target="#search-results">
             </li>

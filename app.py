@@ -67,8 +67,8 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    start_time = db.Column(db.DateTime, server_default=db.func.current_timestamp())
-    end_time = db.Column(db.DateTime, server_default=db.func.current_timestamp())
+    start_time = db.Column(db.DateTime, default=db.func.current_timestamp())
+    end_time = db.Column(db.DateTime)
     user_score = db.Column(db.Integer, nullable=False)
 
 with app.app_context():
@@ -296,22 +296,24 @@ def user(username):
         ).all()
         subject_data = []
         for row in data:
-            subject_data.append({
-                "subject_id": row.subject_id,
-                "subject_name": row.subject_name,
-                "quiz_id": row.quiz_id,
-                "quiz_name": row.quiz_name,
-                "quiz_date": row.quiz_date,
-                "time_duration": row.time_duration,
-                "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
-            })
+            no_of_questions = Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
+            if no_of_questions > 0:
+                subject_data.append({
+                    "subject_id": row.subject_id,
+                    "subject_name": row.subject_name,
+                    "quiz_id": row.quiz_id,
+                    "quiz_name": row.quiz_name,
+                    "quiz_date": row.quiz_date,
+                    "time_duration": row.time_duration,
+                    "no_of_questions": no_of_questions
+                })
         return render_template("user.html", user=user, data=subject_data)
     else:
         flash("Invalid credentials!", "error")
         return redirect(url_for("index"))
 
-@app.route("/search")
-def user_quiz():
+@app.route("/<username>/search")
+def user_quiz(username):
     query = request.args.get("q").strip()
     data = db.session.query(
         Quiz.id.label("quiz_id"),
@@ -331,15 +333,64 @@ def user_quiz():
     ).all()
     subject_data = []
     for row in data:
-        subject_data.append({
-            "subject_name": row.subject_name,
-            "quiz_id": row.quiz_id,
-            "quiz_name": row.quiz_name,
-            "quiz_date": row.quiz_date,
-            "time_duration": row.time_duration,
-            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
-        })
-    return render_template("upcoming_quiz.html", data=subject_data, search=True)
+        no_of_questions = Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
+        if no_of_questions > 0:
+            subject_data.append({
+                "subject_name": row.subject_name,
+                "quiz_id": row.quiz_id,
+                "quiz_name": row.quiz_name,
+                "quiz_date": row.quiz_date,
+                "time_duration": row.time_duration,
+                "no_of_questions": no_of_questions
+            })
+    return render_template("upcoming_quiz.html", data=subject_data, search=True, username=username)
+
+@app.route("/quiz/<int:quiz_id>", methods=["POST"])
+def ongoing_quiz(quiz_id):
+    user = User.query.filter_by(username=request.form.get("username")).first()
+    quiz = Quiz.query.filter_by(id=quiz_id).first()
+    if not user or not quiz:
+        flash("Invalid credentials!", "error")
+        return redirect(url_for("index"))
+    
+    quiz = {
+        "id": quiz.id,
+        "name": quiz.name,
+        "quiz_date": quiz.quiz_date,
+        "time_duration": quiz.time_duration,
+        "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "questions": db.session.query(Question).join(Quizwisequestion, Quizwisequestion.quiz_id==quiz.id).all()
+    }
+    return render_template("user_quiz.html", user=user, quiz=quiz)
+
+@app.route("/calculate_score/<int:user_id>/<int:quiz_id>", methods=["POST"])
+def calculate_score(user_id, quiz_id):
+    submitted_answers = {}
+    correct_answers = {}
+    score = 0
+
+    for question, answer in request.form.items():
+        if question.startswith('question_'):
+            question_id = question.split('_')[1]
+            submitted_answers[question_id] = answer
+        elif question.startswith('correct_option_'):
+            question_id = question.split('_')[2]
+            correct_answers[question_id] = answer
+
+    for question_id, submitted_values in submitted_answers.items():
+        if submitted_values == correct_answers[question_id]:
+            score += 1
+
+    db.session.add(Score(
+        quiz_id=quiz_id,
+        user_id=user_id,
+        start_time=datetime.strptime(request.form.get("start_time"), r'%Y-%m-%d %H:%M:%S'),
+        end_time=datetime.now().replace(microsecond=0),
+        user_score=score
+    ))
+    db.session.commit()
+    return redirect(url_for("user_score", username=request.form.get("username")))
+    ...
 
 @app.route("/<username>/score")
 def user_score(username):
@@ -469,14 +520,14 @@ def quiz(action, id=None):
         db.session.add(Quiz(subject_id=request.form.get("subject"),
                             name=request.form.get("name"),
                             quiz_date=datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date(),
-                            time_duration=datetime.strptime(request.form.get("hour")+':'+request.form.get("minute"), r'%H:%M').time()))
+                            time_duration=datetime.strptime(request.form.get("hour")+':'+request.form.get("minute")+':00', r'%H:%M:%S').time()))
         db.session.commit()
     elif action == "update":
         quiz = Quiz.query.filter_by(id=id).first()
         if quiz:
             quiz.name = request.form.get("name")
-            quiz.quiz_date = datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date(),
-            quiz.time_duration = datetime.strptime(request.form.get("hour")+':'+request.form.get("minute"), r'%H:%M').time()
+            quiz.quiz_date = datetime.strptime(request.form.get("date"), r'%Y-%m-%d').date()
+            quiz.time_duration = datetime.strptime(request.form.get("hour")+':'+request.form.get("minute")+':00', r'%H:%M:%S').time()
             db.session.commit()
     elif action == "delete":
         quiz = Quiz.query.filter_by(id=id).first()

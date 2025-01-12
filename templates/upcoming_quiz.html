@@ -12,7 +12,7 @@
                             <th class="text-center">Name</th>
                             <th class="text-center">Subject</th>
                             <th class="text-center">No. of Questions</th>
-                            <th class="text-center">Date</th>
+                            <th class="text-center">End Date</th>
                             <th class="text-center">Duration</th>
                             <th class="text-center">Action</th>
                         </tr>
@@ -27,8 +27,9 @@
                             <td class="text-center">{{ row.time_duration }}</td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center">
-                                    <form action="" method="post" class="mb-0">
+                                    <form action="/quiz/{{row.quiz_id}}" method="post" class="mb-0">
                                         <button class="btn btn-outline-success btn-sm" type="submit">Start</button>
+                                        <input type="hidden" name="username" value="{{username}}">
                                     </form>
                                 </div>
                             </td>

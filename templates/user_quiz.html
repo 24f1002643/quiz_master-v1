@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block head %}
+<style>
+    body {
+        display: flex;
+        flex-direction: row;
+        margin: 0;
+        padding: 0;
+    }
+
+    .question-container {
+        flex: 3;
+        padding: 20px;
+    }
+
+    .fixed-card {
+        flex: 1;
+        position: sticky;
+        top: 20px;
+        height: fit-content;
+        padding: 20px;
+        margin-right: 20px;
+    }
+
+    .question-card {
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+{% block title %}Quiz{% endblock %}
+{% block content %}
+<div class="question-container">
+    <form action="{{ url_for('calculate_score', user_id=user.id, quiz_id=quiz.id) }}" id="{{user.id}}{{ quiz.id }}" method="post">
+        {% for question in quiz.questions %}
+        <div class="question-card card">
+            <div class="card-header bg-info text-white">Question {{ loop.index }}</div>
+            <div class="card-body">
+                <p>{{ question.statement }}</p>
+                <div>
+                    <input type="radio" id="q{{question.id}}a" name="question_{{question.id}}" value="1">
+                    <label for="q{{question.id}}a">{{ question.option1 }}</label>
+                </div>
+                <div>
+                    <input type="radio" id="q{{question.id}}b" name="question_{{question.id}}" value="2">
+                    <label for="q{{question.id}}b">{{ question.option2 }}</label>
+                </div>
+                <div>
+                    <input type="radio" id="q{{question.id}}c" name="question_{{question.id}}" value="3">
+                    <label for="q{{question.id}}c">{{ question.option3 }}</label>
+                </div>
+                <div>
+                    <input type="radio" id="q{{question.id}}d" name="question_{{question.id}}" value="4">
+                    <label for="q{{question.id}}d">{{ question.option4 }}</label>
+                </div>
+                <input type="hidden" name="correct_option_{{question.id}}" value="{{ question.correct_option }}">
+            </div>
+        </div>
+        {% endfor %}
+        <input type="hidden" name="start_time" value="{{ quiz.start_time }}">
+        <input type="hidden" name="username" value="{{ user.username }}">
+    </form>
+</div>
+
+<div class="fixed-card card bg-light shadow">
+    <div class="card-body">
+        <h5>Time Remaining:</h5>
+        <p id="timer">{{ quiz.time_duration }}</p>
+        <button class="btn btn-success w-100 mt-3" form="{{ user.id }}{{ quiz.id }}">Submit</button>
+        <form id="exit" action="/{{user.username}}">
+            <button class="btn btn-danger w-100 mt-3">Exit Quiz</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const timerElement = document.getElementById('timer');
+    const timeString = timerElement.textContent;
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+    let timeLeft = (hours * 3600 + minutes * 60 + seconds) - 1;
+
+    const countdown = setInterval(() => {
+        const currentHours = Math.floor(timeLeft / 3600);
+        const currentMinutes = Math.floor((timeLeft % 3600) / 60);
+        const currentSeconds = timeLeft % 60;
+
+        timerElement.textContent =
+            `${currentHours < 10 ? '0' : ''}${currentHours}:` +
+            `${currentMinutes < 10 ? '0' : ''}${currentMinutes}:` +
+            `${currentSeconds < 10 ? '0' : ''}${currentSeconds}`;
+
+        timeLeft--;
+
+        if (timeLeft < 0) {
+            clearInterval(countdown);
+            const formElement = document.getElementById("{{ user.username }}{{ quiz.id }}");
+            if (formElement) {
+                formElement.submit();
+            }
+        }
+    }, 1000);
+</script>
+{% endblock %}

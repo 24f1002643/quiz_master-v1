@@ -77,7 +77,6 @@ with app.app_context():
     if not os.path.exists("./instance/database.sqlite3") or not os.path.getsize("./instance/database.sqlite3"):
         db.create_all()
         db.session.add(Admin(username="admin", password="admin"))
-        db.session.add(User(name="Samar", username="samar", password="4554", dob=datetime.strptime("2004-08-22", r'%Y-%m-%d').date()))
         db.session.commit()
 
 

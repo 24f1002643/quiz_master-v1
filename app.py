@@ -310,7 +310,7 @@ def admin_summary():
 
     max_quizzes = max(sub['no_of_quizzes'] for sub in data)
     plt.ylim(0, 10 if max_quizzes < 10 else max_quizzes+1)
-    plt.savefig("./static/user_chart.jpg")
+    plt.savefig("./static/admin_chart.jpg")
 
     return render_template("admin_chart.html", admin=admin)
 

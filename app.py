@@ -12,62 +12,69 @@ db = SQLAlchemy(app)
 
 # Model work
 class Admin(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'admin'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
 
 class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    username = db.Column(db.String(255), nullable=False, unique=True)
+    username = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     dob = db.Column(db.Date)
-    blocked = db.Column(db.Boolean, default=0)
-    score = db.relationship("Score", backref="user")
+    blocked = db.Column(db.Boolean, default=False)
 
 class Subject(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    __tablename__ = 'subject'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.String())
-    chapter = db.relationship('Chapter', backref='subject')
-    quiz = db.relationship('Quiz', backref="subject")
+    description = db.Column(db.String(255))
+    chapters = db.relationship('Chapter', backref='subject', lazy=True)
+    quizzes = db.relationship('Quiz', backref='subject', lazy=True)
 
 class Chapter(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
+    __tablename__ = 'chapter'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
-    description = db.Column(db.String())
-    question = db.relationship('Question', backref='chapter')
-
-class Quiz(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
-    name = db.Column(db.String(), nullable=False)
-    quiz_date = db.Column(db.Date, nullable=False)
-    time_duration = db.Column(db.Time, nullable=False)
-    question = db.relationship('Quizwisequestion', backref="quiz")
-    score = db.relationship('Score', backref="quiz")
+    description = db.Column(db.String(255))
+    questions = db.relationship('Question', backref='chapter', lazy=True)
 
 class Question(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    chapter_id = db.Column(db.Integer, db.ForeignKey("chapter.id"), nullable=False)
+    __tablename__ = 'question'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    chapter_id = db.Column(db.Integer, db.ForeignKey('chapter.id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
-    statement = db.Column(db.String(), nullable=False, unique=True)
-    option1 = db.Column(db.String(), nullable=False)
-    option2 = db.Column(db.String(), nullable=False)
-    option3 = db.Column(db.String(), nullable=False)
-    option4 = db.Column(db.String(), nullable=False)
+    statement = db.Column(db.String(255), unique=True, nullable=False)
+    option1 = db.Column(db.String(31), nullable=False)
+    option2 = db.Column(db.String(31), nullable=False)
+    option3 = db.Column(db.String(31), nullable=False)
+    option4 = db.Column(db.String(31), nullable=False)
     correct_option = db.Column(db.Integer, nullable=False)
-    quiz = db.relationship('Quizwisequestion', backref="question")
+    quizzes = db.relationship('QuizwiseQuestion', backref='question', lazy=True)
 
-class Quizwisequestion(db.Model):
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), primary_key=True, nullable=False)
-    question_id = db.Column(db.Integer, db.ForeignKey("question.id"), primary_key=True, nullable=False)
+class Quiz(db.Model):
+    __tablename__ = 'quiz'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    subject_id = db.Column(db.Integer, db.ForeignKey('subject.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    quiz_date = db.Column(db.Date, nullable=False)
+    time_duration = db.Column(db.Time, nullable=False)
+    questions = db.relationship('QuizwiseQuestion', backref='quiz', lazy=True)
+    scores = db.relationship('Score', backref='quiz', lazy=True)
+
+class QuizwiseQuestion(db.Model):
+    __tablename__ = 'quizwisequestion'
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), primary_key=True, nullable=False)
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id'), primary_key=True, nullable=False)
 
 class Score(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    __tablename__ = 'score'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     user_score = db.Column(db.Integer, nullable=False)
@@ -198,7 +205,7 @@ def admin_search(type):
                     "name": quiz.name,
                     "quiz_date": quiz.quiz_date,
                     "time_duration": quiz.time_duration,
-                    "quizwisequestions": db.session.query(Question).join(Quizwisequestion).filter(Question.id == Quizwisequestion.question_id).filter_by(quiz_id=quiz.id).all(),
+                    "quizwisequestions": db.session.query(Question).join(QuizwiseQuestion).filter(Question.id == QuizwiseQuestion.question_id).filter_by(quiz_id=quiz.id).all(),
                     "subjectwisequestions": db.session.query(Question.statement, Question.id).join(Chapter).join(Subject).filter(Question.chapter_id == Chapter.id).filter(Subject.id == Chapter.subject_id).filter(Subject.id == subject.id).all()
                 }
                 for quiz in Quiz.query.filter(db.or_(Quiz.name.ilike(f"%{query}%"), Quiz.quiz_date.ilike(f"%{query}%"))).filter_by(subject_id=subject.id).all()
@@ -234,7 +241,7 @@ def admin_quiz():
                 "name": quiz.name,
                 "quiz_date": quiz.quiz_date,
                 "time_duration": quiz.time_duration,
-                "quizwisequestions": db.session.query(Question).join(Quizwisequestion).filter(Question.id == Quizwisequestion.question_id).filter_by(quiz_id=quiz.id).all(),
+                "quizwisequestions": db.session.query(Question).join(QuizwiseQuestion).filter(Question.id == QuizwiseQuestion.question_id).filter_by(quiz_id=quiz.id).all(),
                 "subjectwisequestions": db.session.query(Question.statement, Question.id).join(Chapter).join(Subject).filter(Question.chapter_id == Chapter.id).filter(Subject.id == Chapter.subject_id).filter(Subject.id == subject.id).all()
             }
             for quiz in Quiz.query.filter_by(subject_id=subject.id).all()
@@ -329,7 +336,7 @@ def user(username):
         ).all()
         subject_data = []
         for row in data:
-            no_of_questions = Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
+            no_of_questions = QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count()
             if no_of_questions > 0:
                 subject_data.append({
                     "subject_id": row.subject_id,
@@ -366,7 +373,7 @@ def user_quiz(username):
     ).all()
     subject_data = []
     for row in data:
-        no_of_questions = Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count()
+        no_of_questions = QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count()
         if no_of_questions > 0:
             subject_data.append({
                 "subject_name": row.subject_name,
@@ -394,7 +401,7 @@ def ongoing_quiz(username, quiz_id):
         "quiz_date": quiz.quiz_date,
         "time_duration": quiz.time_duration,
         "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "questions": db.session.query(Question).join(Quizwisequestion).filter(Quizwisequestion.quiz_id==quiz.id).all()
+        "questions": db.session.query(Question).join(QuizwiseQuestion).filter(QuizwiseQuestion.quiz_id==quiz.id).all()
     }
     print(quiz)
     return render_template("user_quiz.html", user=user, quiz=quiz)
@@ -453,7 +460,7 @@ def user_score(username):
             "quiz_id":row.quiz_id,
             "quiz_name":row.quiz_name,
             "subject_name":row.subject_name,
-            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "no_of_questions": QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count(),
             "quiz_date":row.quiz_date,
             "time_duration":row.time_duration,
             "attempt_time":row.end_time-row.start_time,
@@ -488,7 +495,7 @@ def user_score_search(username):
             "quiz_id":row.quiz_id,
             "quiz_name":row.quiz_name,
             "subject_name":row.subject_name,
-            "no_of_questions": Quizwisequestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "no_of_questions": QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count(),
             "quiz_date":row.quiz_date,
             "time_duration":row.time_duration,
             "attempt_time":row.end_time-row.start_time,
@@ -568,7 +575,7 @@ def quiz(action, id=None):
     elif action == "delete":
         quiz = Quiz.query.filter_by(id=id).first()
         if quiz:
-            for obj in Quizwisequestion.query.filter_by(quiz_id=id).all():
+            for obj in QuizwiseQuestion.query.filter_by(quiz_id=id).all():
                 db.session.delete(obj)
             db.session.delete(quiz)
             db.session.commit()
@@ -580,8 +587,8 @@ def quiz(action, id=None):
 def add_question_to_quiz(action, quiz_id):
     question_id = request.form.get("question_id")
     if action == "append":
-        if not Quizwisequestion.query.filter_by(quiz_id=quiz_id, question_id=question_id).first():
-            db.session.add(Quizwisequestion(
+        if not QuizwiseQuestion.query.filter_by(quiz_id=quiz_id, question_id=question_id).first():
+            db.session.add(QuizwiseQuestion(
                 quiz_id=quiz_id,
                 question_id=question_id
             ))
@@ -589,7 +596,7 @@ def add_question_to_quiz(action, quiz_id):
         else:
             flash("Question already exist in quiz!", "error")
     elif action == "delete":
-        question = Quizwisequestion.query.filter_by(question_id=question_id, quiz_id=quiz_id).first()
+        question = QuizwiseQuestion.query.filter_by(question_id=question_id, quiz_id=quiz_id).first()
         if question:
             db.session.delete(question)
             db.session.commit()
@@ -623,9 +630,9 @@ def question(action, id=None):
         return redirect(url_for("admin"))
     elif action == "delete":
         question = Question.query.filter_by(id=id).first()
-        quizwisequestions = Quizwisequestion.query.filter_by(question_id=id).all()
+        QuizwiseQuestions = QuizwiseQuestion.query.filter_by(question_id=id).all()
         if question:
-            for questions in quizwisequestions:
+            for questions in QuizwiseQuestions:
                 db.session.delete(questions)
             db.session.delete(question)
             db.session.commit()

@@ -9,6 +9,7 @@ app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///database.sqlite3"
 app.secret_key = '0987654321'
 db = SQLAlchemy(app)
 
+#######################################################################################3
 
 # Model work
 class Admin(db.Model):
@@ -63,7 +64,6 @@ class Quiz(db.Model):
     quiz_date = db.Column(db.Date, nullable=False)
     time_duration = db.Column(db.Time, nullable=False)
     questions = db.relationship('QuizwiseQuestion', backref='quiz', lazy=True)
-    scores = db.relationship('Score', backref='quiz', lazy=True)
 
 class QuizwiseQuestion(db.Model):
     __tablename__ = 'quizwisequestion'
@@ -73,8 +73,12 @@ class QuizwiseQuestion(db.Model):
 class Score(db.Model):
     __tablename__ = 'score'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    quiz_id = db.Column(db.Integer, db.ForeignKey('quiz.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    quiz_name = db.Column(db.String(255), nullable=False)
+    quiz_date = db.Column(db.Date, nullable=False)
+    quiz_time_duration = db.Column(db.Time, nullable=False)
+    subject_name = db.Column(db.String(255), nullable=False)
+    no_of_questions = db.Column(db.Integer, nullable=False)
     start_time = db.Column(db.DateTime)
     end_time = db.Column(db.DateTime)
     user_score = db.Column(db.Integer, nullable=False)
@@ -86,6 +90,7 @@ with app.app_context():
         db.session.add(Admin(username="admin", password="admin"))
         db.session.commit()
 
+###################################################################################
 
 # Flask work
 @app.route('/', methods=["GET", "POST"])
@@ -303,7 +308,7 @@ def admin_summary():
         data.append({
             "id": subject.id,
             "name": subject.name,
-            "no_of_quizzes": db.session.query(Score).join(Quiz, Quiz.id==Score.quiz_id).filter(Quiz.subject_id==subject.id).count()
+            "no_of_quizzes": db.session.query(Score).join(Subject, Subject.name==Score.subject_name).filter(Score.subject_name==subject.name).count()
         })
     
     plt.figure(figsize=(8, 5))
@@ -424,9 +429,20 @@ def calculate_score(user_id, quiz_id):
         if submitted_values == correct_answers[question_id]:
             score += 1
 
+    quiz = db.session.query(
+        Quiz.id,
+        Quiz.name.label("quiz_name"),
+        Subject.name.label("subject_name"),
+        Quiz.quiz_date,
+        Quiz.time_duration
+    ).join(Subject).filter(Quiz.subject_id==Subject.id).filter(Quiz.id==quiz_id).first()
     db.session.add(Score(
-        quiz_id=quiz_id,
         user_id=user_id,
+        quiz_name=quiz.quiz_name,
+        quiz_date=quiz.quiz_date,
+        quiz_time_duration=quiz.time_duration,
+        subject_name=quiz.subject_name,
+        no_of_questions=QuizwiseQuestion.query.filter_by(quiz_id=quiz.id).count(),
         start_time=datetime.strptime(request.form.get("start_time"), r'%Y-%m-%d %H:%M:%S'),
         end_time=datetime.now().replace(microsecond=0),
         user_score=score
@@ -443,26 +459,16 @@ def user_score(username):
         return redirect(url_for("index"))
     
     data = []
-    tmp_data = db.session.query(
-        Quiz.id.label("quiz_id"),
-        Quiz.name.label("quiz_name"),
-        Subject.name.label("subject_name"),
-        Quiz.quiz_date,
-        Quiz.time_duration,
-        Score.start_time,
-        Score.end_time,
-        Score.user_score
-    ).join(Subject).filter(Quiz.subject_id == Subject.id
-    ).join(Score).filter(Score.quiz_id == Quiz.id).filter(Score.user_id==user.id).all()
+    tmp_data = Score.query.filter_by(user_id=user.id).all()
 
     for row in tmp_data:
         data.append({
-            "quiz_id":row.quiz_id,
             "quiz_name":row.quiz_name,
             "subject_name":row.subject_name,
-            "no_of_questions": QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "no_of_questions": row.no_of_questions,
             "quiz_date":row.quiz_date,
-            "time_duration":row.time_duration,
+            "time_duration":row.quiz_time_duration,
+            "attempt_date":row.start_time.date(),
             "attempt_time":row.end_time-row.start_time,
             "user_score":row.user_score
         })
@@ -471,33 +477,28 @@ def user_score(username):
 @app.route("/<username>/score/search")
 def user_score_search(username):
     query = request.args.get("q").strip()
+    user = User.query.filter_by(username=username).first()
+    if not user or (not 'username' in session or username != session["username"]):
+        flash("Invalid credentials!", "error")
+        return redirect(url_for("index"))
 
     data = []
-    tmp_data = db.session.query(
-        Quiz.id.label("quiz_id"),
-        Quiz.name.label("quiz_name"),
-        Subject.name.label("subject_name"),
-        Quiz.quiz_date,
-        Quiz.time_duration,
-        Score.start_time,
-        Score.end_time,
-        Score.user_score
-    ).join(Subject, Quiz.subject_id == Subject.id
-    ).join(Score, Score.quiz_id == Quiz.id).filter(Score.user_id==User.id).filter(
+    tmp_data = Score.query.filter_by(user_id=user.id).filter(
         db.or_(
-                Quiz.name.ilike(f"%{query}%"),
-                Subject.name.ilike(f"%{query}%"),
-                Quiz.quiz_date.ilike(f"%{query}%")
+                Score.quiz_name.ilike(f"%{query}%"),
+                Score.subject_name.ilike(f"%{query}%"),
+                Score.quiz_date.ilike(f"%{query}%"),
+                Score.start_time.ilike(f"%{query}%")
             )
     ).all()
     for row in tmp_data:
         data.append({
-            "quiz_id":row.quiz_id,
             "quiz_name":row.quiz_name,
             "subject_name":row.subject_name,
-            "no_of_questions": QuizwiseQuestion.query.filter_by(quiz_id=row.quiz_id).count(),
+            "no_of_questions": row.no_of_questions,
             "quiz_date":row.quiz_date,
-            "time_duration":row.time_duration,
+            "time_duration":row.quiz_time_duration,
+            "attempt_date":row.start_time.date(),
             "attempt_time":row.end_time-row.start_time,
             "user_score":row.user_score
         })
@@ -518,8 +519,14 @@ def subject(action, id=None):
     elif action == "delete":
         subject = Subject.query.filter_by(id=id).first()
         chapters = Chapter.query.filter_by(subject_id=id).all()
+        quizzes = Quiz.query.filter_by(subject_id=id).all()
         if subject:
+            for quiz in quizzes:
+                db.session.delete(quiz)
             for chapter in chapters:
+                questions = Question.query.filter_by(chapter_id=chapter.id).all()
+                for question in questions:
+                    db.session.delete(question)
                 db.session.delete(chapter)
             db.session.delete(subject)
             db.session.commit()
@@ -544,7 +551,7 @@ def chapter(action, id=None):
     elif action == "delete":
         chapter = Chapter.query.filter_by(id=id).first()
         questions = Question.query.filter_by(chapter_id=id).all()
-        quiz = Quiz.query.filter_by(chapter_id=id).all()
+        quiz = Quiz.query.filter_by(subject_id=id).all()
         if chapter:
             for ids in questions:
                 db.session.delete(ids)
@@ -654,7 +661,7 @@ def chart(username):
         data.append({
             "id": subject.id,
             "name": subject.name,
-            "no_of_quizzes": db.session.query(Score).join(Quiz, Quiz.id==Score.quiz_id).filter(Quiz.subject_id==subject.id).filter(Score.user_id==user.id).count()
+            "no_of_quizzes": db.session.query(Score).join(Subject, Score.subject_name==Subject.name).filter(Score.subject_name==subject.name).filter(Score.user_id==user.id).count()
         })
     
     plt.figure(figsize=(8, 5))

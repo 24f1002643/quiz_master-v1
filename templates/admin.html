@@ -29,6 +29,10 @@
     .nav-item {
         margin-right: 5px;
     }
+
+    .add_subject_button {
+        margin-top: 20px;
+    }
 </style>
 {% endblock %}
 {% block title %}Admin{% endblock %}
@@ -74,7 +78,7 @@
             {% endif %}
             {% endwith %}
         </div>
-        <div>
+        <div class="add_subject_button">
             <button type="button" id="add-subject" class="btn btn-success" data-toggle="modal"
                 data-target="#addSubject">
                 Add Subject

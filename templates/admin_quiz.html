@@ -41,6 +41,10 @@
     .nav-item {
         margin-right: 5px;
     }
+
+    .add_quiz_button {
+        margin-top: 20px;
+    }
 </style>
 {% endblock %}
 {% block title %}Quiz{% endblock %}
@@ -86,7 +90,7 @@
             {% endif %}
             {% endwith %}
         </div>
-        <div>
+        <div class="add_quiz_button">
             <button type="button" id="add-quiz" class="btn btn-success" data-toggle="modal" data-target="#addQuiz">
                 Add Quiz
             </button>

@@ -302,24 +302,20 @@ def admin_summary():
     else:
         return redirect(url_for("index"))
     
-    subjects = Subject.query.all()
-    data = []
-    for subject in subjects:
-        data.append({
-            "id": subject.id,
-            "name": subject.name,
-            "no_of_quizzes": db.session.query(Score).join(Subject, Subject.name==Score.subject_name).filter(Score.subject_name==subject.name).count()
-        })
+    data = db.session.query(
+        Score.subject_name, 
+        db.func.count(Score.id).label('count')
+    ).group_by(Score.subject_name).all()
     
     plt.figure(figsize=(8, 5))
-    plt.bar([sub['name'] for sub in data], [sub['no_of_quizzes'] for sub in data], color='skyblue', edgecolor='black')
+    plt.bar([sub.subject_name for sub in data], [sub.count for sub in data], color='skyblue', edgecolor='black')
     plt.title("Number of Quizzes per Subject", fontsize=14)
     plt.xlabel("Subject Name", fontsize=12)
     plt.ylabel("Number of Quizzes", fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
 
-    max_quizzes = max(sub['no_of_quizzes'] for sub in data)
+    max_quizzes = max(sub.count for sub in data)
     plt.ylim(0, 10 if max_quizzes < 10 else max_quizzes+1)
     plt.savefig("./static/admin_chart.jpg")
 
@@ -655,24 +651,20 @@ def chart(username):
         flash("Invalid input", "error")
         return redirect(url_for("index"))
     
-    subjects = Subject.query.all()
-    data = []
-    for subject in subjects:
-        data.append({
-            "id": subject.id,
-            "name": subject.name,
-            "no_of_quizzes": db.session.query(Score).join(Subject, Score.subject_name==Subject.name).filter(Score.subject_name==subject.name).filter(Score.user_id==user.id).count()
-        })
+    data = db.session.query(
+        Score.subject_name, 
+        db.func.count(Score.id).label('count')
+    ).group_by(Score.subject_name).filter(Score.user_id==user.id).all()
     
     plt.figure(figsize=(8, 5))
-    plt.bar([sub['name'] for sub in data], [sub['no_of_quizzes'] for sub in data], color='skyblue', edgecolor='black')
+    plt.bar([sub.subject_name for sub in data], [sub.count for sub in data], color='skyblue', edgecolor='black')
     plt.title("Number of Quizzes per Subject", fontsize=14)
     plt.xlabel("Subject Name", fontsize=12)
     plt.ylabel("Number of Quizzes", fontsize=12)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.tight_layout()
 
-    max_quizzes = max(sub['no_of_quizzes'] for sub in data)
+    max_quizzes = max(sub.count for sub in data)
     plt.ylim(0, 10 if max_quizzes < 10 else max_quizzes+1)
     plt.savefig("./static/user_chart.jpg")
     
